@@ -1,4 +1,4 @@
-import { Engine, World } from '../../src'; // Adjusted path
+import { Engine, World, Component, ComponentClass, PrefabData } from '@src/index'; // Adjusted path
 
 describe('Engine', () => {
     let engine: Engine;
@@ -26,9 +26,9 @@ describe('Engine', () => {
     // Basic tests for component and prefab registration to ensure plumbing
     // More detailed tests for these registries themselves are in their own spec files.
     describe('component registration', () => {
-        class TestComponent extends Engine.Component {} // Use Engine.Component as base
+        class TestComponent extends Component {} // Use Engine.Component as base
         beforeEach(() => {
-            engine.registerComponent(TestComponent as Engine.ComponentClass);
+            engine.registerComponent(TestComponent as ComponentClass);
         });
 
         it('should allow component registration', () => {
@@ -40,7 +40,7 @@ describe('Engine', () => {
     });
 
     describe('prefab registration', () => {
-        const testPrefab: Engine.PrefabData = { name: 'TestPrefab', components: [] };
+        const testPrefab: PrefabData = { name: 'TestPrefab', components: [] };
         beforeEach(() => {
             engine.registerPrefab(testPrefab);
         });

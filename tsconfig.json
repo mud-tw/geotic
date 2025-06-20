@@ -12,6 +12,7 @@
     "rootDir": ".",
     "baseUrl": ".",
     "paths": {
+      "@src/*": ["src/*"],
       "*": ["node_modules/*"]
     },
     "declaration": true,
