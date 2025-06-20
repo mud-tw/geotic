@@ -2,14 +2,18 @@
     "name": "geotic",
     "version": "4.3.2",
     "description": "entity-component-system",
-    "main": "build/index.js",
+    "main": "dist/geotic.umd.js",
+    "module": "dist/geotic.esm.js",
+    "types": "dist/index.d.ts",
     "type": "module",
     "scripts": {
         "start": "npm run build && node --enable-source-maps --experimental-modules --es-module-specifier-resolution=node example/index.js",
         "build": "rollup -c",
+        "build:types": "tsc --emitDeclarationOnly",
+        "type-check": "tsc --noEmit",
         "pretty": "prettier --write .",
         "benchmark": "node --experimental-modules --es-module-specifier-resolution=node ./benchmark.js",
-        "test": "jest --config jest.config.json",
+        "test": "jest --config jest.config.json --runInBand --detectOpenHandles --forceExit",
         "prepublish": "npm run build"
     },
     "author": "Dalton Mills <mills.dalton@gmail.com> (http://www.ddmills.com)",
@@ -21,23 +25,31 @@
     "dependencies": {
         "camelcase": "6.0.0"
     },
+    "dependencies": {
+        "camelcase": "6.0.0",
+        "tslib": "^x.y.z"
+    },
     "devDependencies": {
         "@babel/cli": "7.17.3",
         "@babel/core": "7.9.0",
+        "@rollup/plugin-typescript": "^x.y.z",
         "@babel/plugin-proposal-class-properties": "7.12.1",
         "@babel/preset-env": "7.9.5",
         "@rollup/plugin-commonjs": "11.1.0",
         "@rollup/plugin-node-resolve": "7.1.3",
+        "@types/jest": "30.0.0",
+        "@types/node": "24.0.3",
         "babel-jest": "25.5.0",
         "chance": "1.1.4",
         "jest": "27.5.1",
         "prettier": "2.0.5",
         "rollup": "2.7.2",
-        "rollup-plugin-babel": "4.4.0"
+        "rollup-plugin-babel": "4.4.0",
+        "typescript": "5.8.3"
     },
     "files": [
         "src",
-        "build"
+        "dist"
     ],
     "directories": {
         "lib": "src"
