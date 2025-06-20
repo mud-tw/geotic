@@ -1,4 +1,4 @@
-import { Component, ComponentProperties, EntityEvent } from '../../src';
+import { Component, ComponentProperties, EntityEvent } from '../../dist/geotic.es.js';
 
 interface HealthProperties extends ComponentProperties {
     max: number;

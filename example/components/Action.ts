@@ -1,4 +1,4 @@
-import { Component, ComponentProperties } from '../../src'; // Assuming ComponentProperties is exported
+import { Component, ComponentProperties } from '../../dist/geotic.es.js'; // Assuming ComponentProperties is exported
 
 interface ActionProperties extends ComponentProperties {
     name: string;

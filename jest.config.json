@@ -2,6 +2,17 @@
     "preset": "ts-jest",
     "testEnvironment": "node",
     "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.[jt]sx?$",
-    "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
-    "setupFilesAfterEnv": ["./tests/jest.setup.js"]
+    "moduleFileExtensions": ["js", "ts", "json", "node", "mjs"],
+    "setupFilesAfterEnv": ["./tests/jest.setup.ts"],
+    "moduleNameMapper": {
+        "^@src/(.*)$": "<rootDir>/src/$1"
+    },
+    "transform": {
+      "^.+\\.tsx?$": "ts-jest",
+      "^.+\\.m?js$": "ts-jest"
+    },
+    "transformIgnorePatterns": [
+      "/node_modules/(?!camelcase|deepmerge)/",
+      "\\.pnp\\.[^\\/]+$"
+    ]
 }

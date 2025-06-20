@@ -1,4 +1,4 @@
-import { Component, ComponentProperties } from '../../src';
+import { Component, ComponentProperties } from '../../dist/geotic.es.js';
 
 interface PositionProperties extends ComponentProperties {
     x: number;

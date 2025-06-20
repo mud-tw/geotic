@@ -1,0 +1,19 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "./build",
+    "noEmit": false,
+    "isolatedModules": false,
+    // Overriding baseUrl and paths from the parent tsconfig.json
+    // as they might conflict with "rootDir": "." if they use absolute paths or "@src"
+    "baseUrl": ".", // Keep it simple for example compilation
+    "paths": {}    // Clear paths from parent
+  },
+  "include": [
+    "./**/*.ts"
+  ],
+  "exclude": [
+    "./build"
+  ]
+}

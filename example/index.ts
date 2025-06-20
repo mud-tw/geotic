@@ -1,14 +1,14 @@
 // Component Imports (assuming default exports from their .ts files)
-import Material from './components/Material';
-import Position from './components/Position';
-import Listener from './components/Listener';
-import Health from './components/Health';
-import Action from './components/Action';
-import EquipmentSlot from './components/EquipmentSlot';
+import Material from './components/Material.js';
+import Position from './components/Position.js';
+import Listener from './components/Listener.js';
+import Health from './components/Health.js';
+import Action from './components/Action.js';
+import EquipmentSlot from './components/EquipmentSlot.js';
 
 // Prefab Imports (assuming default exports from their .ts files)
-import BeingPrefab from './prefabs/BeingPrefab';
-import HumanPrefab from './prefabs/HumanPrefab';
+import BeingPrefab from './prefabs/BeingPrefab.js';
+import HumanPrefab from './prefabs/HumanPrefab.js';
 
 // Library Imports
 import {
@@ -19,8 +19,8 @@ import {
     Query,    // For query type
     PrefabData, // For prefab data structure if needed, though registerPrefab handles it
     ComponentClassWithCBit // For the cast in createQuery
-} from '../src';
-import type { ComponentClass } from '../src'; // Specifically for registerComponent
+} from '../dist/geotic.es.js';
+import type { ComponentClass } from '../dist/geotic.es.js'; // Specifically for registerComponent
 
 const ecs: Engine = new Engine();
 const world: World = ecs.createWorld();

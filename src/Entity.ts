@@ -1,5 +1,5 @@
-import { Component } from './Component.js';
-import { EntityEvent } from './EntityEvent.js';
+import { Component } from './Component';
+import { EntityEvent } from './EntityEvent';
 import { addBit, hasBit, subtractBit } from './util/bit-util';
 import type { World } from './World';
 import type { ComponentProperties } from './Component'; // Assuming Component.ts exports this

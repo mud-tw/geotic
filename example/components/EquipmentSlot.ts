@@ -1,4 +1,4 @@
-import { Component, ComponentProperties, Entity } from '../../src'; // Assuming Entity is also exported
+import { Component, ComponentProperties, Entity } from '../../dist/geotic.es.js'; // Assuming Entity is also exported
 
 interface EquipmentSlotProperties extends ComponentProperties {
     name: string;

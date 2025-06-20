@@ -1,4 +1,4 @@
-import { PrefabData } from '../../src'; // Assuming PrefabData is exported from src/index.ts
+import { PrefabData } from '../../dist/geotic.es.js'; // Assuming PrefabData is exported from src/index.ts
 
 // Component imports are not strictly necessary here for the prefab definition data,
 // but they help ensure type names are correct if you want to cross-reference.
