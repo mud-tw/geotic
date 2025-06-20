@@ -5,7 +5,7 @@ import type { Engine } from './Engine.js';
 import type { ComponentProperties } from './Component.js';
 import type { ComponentClass } from './ComponentRegistry'; // Assuming ComponentRegistry exports this
 
-interface SerializedWorldData {
+export interface SerializedWorldData {
     entities: SerializedEntity[];
 }
 

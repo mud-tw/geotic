@@ -12,6 +12,9 @@ export class Component {
     static keyProperty: string | null = null;
     static properties: ComponentProperties = {};
 
+    _ckey!: string;
+    _cbit!: bigint;
+
     entity!: Entity; // Initialized in _onAttached
 
     get world(): World {

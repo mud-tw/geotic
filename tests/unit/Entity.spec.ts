@@ -1,4 +1,4 @@
-import { Engine, World, Entity, Component, ComponentProperties, ComponentClass } from '../../src'; // Adjusted path
+import { Engine, World, Entity, Component, ComponentProperties, ComponentClass } from '@src/index'; // Adjusted path
 import { EmptyComponent } from '../data/components'; // Adjusted path
 
 // Use global chance instance if available (from jest.setup.ts)

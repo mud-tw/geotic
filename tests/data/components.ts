@@ -1,4 +1,4 @@
-import { Component, ComponentProperties } from '../../../src'; // Adjusted path
+import { Component, ComponentProperties } from '@src/index'; // Adjusted path
 
 export class EmptyComponent extends Component {}
 

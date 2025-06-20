@@ -13,6 +13,7 @@ export { World } from './World.js';
 export type { ComponentProperties } from './Component.js';
 export type { ComponentClass } from './ComponentRegistry.js';
 export type { SerializedEntity } from './Entity.js';
+export type { SerializedWorldData } from './World.js';
 export type { PrefabData } from './PrefabRegistry.js';
 export type { QueryFilters, ComponentClassWithCBit } from './Query.js'; // Added ComponentClassWithCBit
 // SerializedWorldData is not exported from World.ts, if needed it should be.

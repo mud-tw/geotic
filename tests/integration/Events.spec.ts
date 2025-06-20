@@ -1,4 +1,4 @@
-import { Engine, Component, World, Entity, EntityEvent, ComponentClass } from '../../src'; // Adjusted path
+import { Engine, Component, World, Entity, EntityEvent, ComponentClass } from '@src/index'; // Adjusted path
 import { EmptyComponent } from '../data/components'; // Adjusted path
 
 // Use global chance instance if available
@@ -36,7 +36,7 @@ describe('Entity Events Integration Test', () => { // Renamed for clarity
         beforeEach(() => {
             entity = world.createEntity();
             entity.add(EventComponent);
-            eventData = chance.object() as Record<string, any>; // Ensure chance.object returns a suitable type
+            eventData = { message: chance.sentence(), count: chance.natural() }; // Ensure chance.object returns a suitable type
 
             // fireEvent will create an EntityEvent internally
             entity.fireEvent('test-event', eventData);

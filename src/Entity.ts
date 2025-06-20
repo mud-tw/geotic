@@ -168,10 +168,14 @@ export class Entity {
         return hasBit(this._cbits, (clazz.prototype as any)._cbit);
     }
 
-    remove(component: Component & { _ckey: string, _cbit: bigint, keyProperty: string | null, allowMultiple: boolean, _onDestroyed: () => void }): void {
-        if (component.keyProperty) {
-            removeComponentKeyed(this, component);
-        } else if (component.allowMultiple) {
+    remove(component: Component & { _ckey: string, _cbit: bigint, _onDestroyed: () => void }): void {
+        // Access static properties from the component's constructor
+        const staticProps = component.constructor as typeof Component;
+
+        if (staticProps.keyProperty) {
+            // Cast component to any for removeComponentKeyed as it expects keyProperty directly for now
+            removeComponentKeyed(this, component as any);
+        } else if (staticProps.allowMultiple) {
             removeComponentArray(this, component);
         } else {
             removeComponent(this, component);

@@ -1,4 +1,4 @@
-import { PrefabData } from '../../../src'; // Adjusted path
+import { PrefabData } from '@src/index'; // Adjusted path
 
 export const EmptyPrefab: PrefabData = {
     name: 'EmptyPrefab',
