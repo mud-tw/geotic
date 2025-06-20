@@ -1,6 +1,6 @@
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
-import babel from 'rollup-plugin-babel'; // Will keep babel for now as per instructions
+import babel from '@rollup/plugin-babel'; // Will keep babel for now as per instructions
 import typescript from '@rollup/plugin-typescript';
 
 export default {
