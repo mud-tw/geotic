@@ -17,8 +17,16 @@
       "*": ["node_modules/*"]
     },
     "declaration": true,
-    "sourceMap": true
+    "sourceMap": true,
   },
   "include": ["src/**/*", "tests/**/*", "example/**/*"],
-  "exclude": ["node_modules", "dist", "example/node_modules"]
+  "exclude": ["node_modules", "dist", "example/node_modules"],
+  "ts-node": {
+    // 告訴 ts-node 在 ESM 專案中自動啟用 ESM 載入器
+    "esm": true,
+    // 如果您在 `tsconfig.json` 中設定了 `paths`，
+    // 並且希望 `ts-node` 在執行時也解析這些路徑，
+    // 您可能需要安裝 `tsconfig-paths` 並在此處引用它。
+    // "require": ["tsconfig-paths/register"]
+  }
 }

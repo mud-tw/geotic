@@ -7,13 +7,12 @@
     "types": "dist/index.d.ts",
     "type": "module",
     "scripts": {
-        "start": "npm run build && node --loader ts-node/esm --experimental-specifier-resolution=node example/index.ts",
+        "start": "node --loader ts-node/esm --experimental-specifier-resolution=node example/index.ts",
         "build": "vite build",
         "type-check": "tsc --noEmit",
         "pretty": "prettier --write .",
-        "benchmark": "node --experimental-modules --es-module-specifier-resolution=node ./benchmark.js",
-        "test": "jest --config jest.config.json --runInBand --detectOpenHandles --forceExit",
-        "prepublish": "npm run build"
+        "benchmark": "node --loader ts-node/esm --experimental-specifier-resolution=node ./benchmark.js",
+        "test": "jest --config jest.config.json --runInBand --detectOpenHandles --forceExit"
     },
     "author": "Dalton Mills <mills.dalton@gmail.com> (http://www.ddmills.com)",
     "license": "MIT",
@@ -23,8 +22,10 @@
     "homepage": "https://github.com/ddmills/geotic#readme",
     "dependencies": {
         "camelcase": "8.0.0",
+        "deep-copy-ts": "0.5.4",
         "deepmerge": "^4.3.1",
-        "tslib": "^2.4.0"
+        "tslib": "^2.4.0",
+        "uuid": "11.1.0"
     },
     "devDependencies": {
         "@types/chance": "1.1.6",

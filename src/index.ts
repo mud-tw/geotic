@@ -20,4 +20,4 @@ export type { QueryFilters, ComponentClassWithCBit } from './Query'; // Added Co
 
 export { ONE, addBit, subtractBit, hasBit, bitIntersection } from './util/bit-util';
 export { deepClone } from './util/deep-clone';
-export { camelString } from './util/string-util';
+export { camelString, uuid } from './util/string-util';

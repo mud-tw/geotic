@@ -223,19 +223,23 @@ interface NameProperties {
     value: string;
 }
 
-interface 
-
 // Define example components for context
-class Name extends Component { 
+class Name extends Component implements NameProperties { 
     static properties: NameProperties = { value: "" }; 
 }
 
 class Position extends Component { 
     static properties = { x:0, y:0, z:0 }; 
+    x!: number;
+    y!: number;
+    z!: number;
 }
 
 class Velocity extends Component {
-    static properties = { x:0, y:0, z:0 }; 
+    static properties = { x:0, y:0, z:0 };
+    x!: number;
+    y!: number;
+    z!: number;
 }
 class Health extends Component { 
     static properties = { value: 0 }; 
@@ -261,13 +265,13 @@ zombie.add(Health, { value: 200 });
 zombie.add(Enemy);
 
 // Assuming direct property access for components; type safety may require entity.get(Name)
-(zombie.get(Name) as Name).value = 'George';
-(zombie.get(Velocity) as Velocity).x += 12;
+zombie.name.value = 'George';
+zombie.velocity.x += 12;
 
 // Firing an event with specific data
 zombie.fireEvent('hit', { damage: 12 });
 
-const zombieHealth = zombie.get(Health) as Health;
+const zombieHealth = zombie.health;
 if (zombieHealth && zombieHealth.value <= 0) {
     zombie.destroy();
 }

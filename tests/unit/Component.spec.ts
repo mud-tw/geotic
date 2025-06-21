@@ -54,10 +54,10 @@ describe('Component', () => {
         onAttachedStub = jest.fn();
         onDestroyedStub = jest.fn(); // Removed duplicate assignment
 
-        engine.registerComponent(EmptyComponent as ComponentClass); // Cast if necessary
-        engine.registerComponent(TestComponent as ComponentClass);
-        engine.registerComponent(NestedComponent as ComponentClass);
-        engine.registerComponent(ArrayComponent as ComponentClass);
+        engine.registerComponent(EmptyComponent); // Cast if necessary
+        engine.registerComponent(TestComponent);
+        engine.registerComponent(NestedComponent);
+        engine.registerComponent(ArrayComponent);
 
         entity = world.createEntity();
     });
@@ -93,7 +93,7 @@ describe('Component', () => {
 
         describe('when destroying a simple component', () => {
             beforeEach(() => {
-                component = (entity as any).testComponent as TestComponent;
+                component = entity.testComponent;
                 component.destroy();
             });
 
@@ -122,7 +122,7 @@ describe('Component', () => {
             });
 
             it('should remove the component from the entity', () => {
-                expect(((entity as any).nestedComponent as Record<string, NestedComponent>)['b']).toBeUndefined();
+                expect((entity.nestedComponent as Record<string, NestedComponent>)['b']).toBeUndefined();
             });
 
             it('should not remove the other nested component from the entity', () => {
