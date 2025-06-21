@@ -1,4 +1,4 @@
-import { Engine, World, Entity, ComponentClass, SerializedWorldData, SerializedEntity } from '@src/index'; // Adjusted path
+import { Engine, World, Entity, ComponentClass, SerializedWorldData, SerializedEntity } from '../../src'; // Adjusted path
 import {
     EmptyComponent,
     SimpleComponent,

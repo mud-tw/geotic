@@ -2,16 +2,16 @@
 
 _adjective_ physically concerning land or its inhabitants.
 
-Geotic is an ECS library focused on **performance**, **features**, and **non-intrusive design**. [View benchmarks](https://github.com/ddmills/js-ecs-benchmarks).
+Geotic 是一個專注於**效能**、**功能**和**非侵入式設計**的 ECS 函式庫。[查看效能評測](https://github.com/ddmills/js-ecs-benchmarks)。
 
--   [**entity**](#entity) a unique id and a collection of components
--   [**component**](#component) a data container
--   [**query**](#query) a way to gather collections of entities that match some criteria, for use in systems
--   [**world**](#world) a container for entities and queries
--   [**prefab**](#prefab) a template of components to define entities as JSON
--   [**event**](#event) a message to an entity and its components
+-   [**實體 (entity)**](#entity) 一個唯一的 ID 和組件的集合
+-   [**組件 (component)**](#component) 一個資料容器
+-   [**查詢 (query)**](#query) 一種收集符合某些條件的實體集合的方法，供系統使用
+-   [**世界 (world)**](#world) 一個實體和查詢的容器
+-   [**預製件 (prefab)**](#prefab) 一個用 JSON 定義實體的組件範本
+-   [**事件 (event)**](#event) 一個傳送給實體及其組件的訊息
 
-This library is _heavily_ inspired by ECS in _Caves of Qud_. Watch these talks to get inspired!
+此函式庫深受 _Caves of Qud_ 中的 ECS 設計啟發。觀看這些演講以獲得靈感！
 
 -   [Thomas Biskup - There be dragons: Entity Component Systems for Roguelikes](https://www.youtube.com/watch?v=fGLJC5UY2o4&t=1534s)
 -   [Brian Bucklew - AI in Qud and Sproggiwood](https://www.youtube.com/watch?v=4uxN5GqXcaA)
@@ -31,19 +31,25 @@ npm install geotic
 -   [Javascript Roguelike Tutorial](https://github.com/luetkemj/jsrlt) by [@luetkemj](https://github.com/luetkemj)
 -   [basic example](https://github.com/ddmills/geotic-example) using pixijs
 
-Below is a contrived example which shows the basics of geotic:
+以下是一個展示 geotic 基本用法的人為範例：
 
 ```typescript
-import { Engine, Component, World, Entity, EntityEvent, PrefabData, Query } from 'geotic'; // Assuming Query is exported for type usage if needed.
+import { 
+    Engine, Component, World, Entity, EntityEvent, PrefabData, Query 
+} from 'geotic';
 
-// Define some simple components
+interface PositionProperties {
+    x: number;
+    y: number;
+}
+
+
+// 定義組件
 class Position extends Component {
-    static properties: { x: number; y: number } = {
+    static properties: PositionProperties = {
         x: 0,
         y: 0,
     };
-    x!: number; // Definite assignment assertion
-    y!: number;
 }
 
 class Velocity extends Component {
@@ -51,50 +57,46 @@ class Velocity extends Component {
         x: 0,
         y: 0,
     };
-    x!: number;
-    y!: number;
 }
 
 class IsFrozen extends Component {}
 
-const engine: Engine = new Engine();
+const engine: Engine = new Engine(); // 建立引擎實例
 
-// All Components and Prefabs must be `registered` by the engine
+// 所有組件和預製件都必須由引擎 `註冊`
 engine.registerComponent(Position);
 engine.registerComponent(Velocity);
 engine.registerComponent(IsFrozen);
 
 // ...
-// Create a world to hold and create entities and queries
+// 建立一個世界來容納和建立實體與查詢
 const world: World = engine.createWorld();
 
-// Create an empty entity. Call `entity.id` to get the unique ID.
+// 建立一個空實體。呼叫 `entity.id` 以獲取唯一 ID。
 const entity: Entity = world.createEntity();
 
-// Add some components to the entity
+// 為實體新增一些組件
 entity.add(Position, { x: 4, y: 10 });
 entity.add(Velocity, { x: 1, y: 0.25 });
 
-// Create a query that tracks all components that have both a `Position`
-// and `Velocity` component but not a `IsFrozen` component. A query can
-// have any combination of `all`, `none` and `any`
+// 建立一個查詢，追蹤所有同時擁有 `Position` 和 `Velocity` 組件，
+// 但沒有 `IsFrozen` 組件的實體。查詢可以包含 `all`、`none` 和 `any` 的任意組合。
 const kinematics: Query = world.createQuery({
-    all: [Position, Velocity], // Pass component classes directly
-    none: [IsFrozen]
+    all: [Position, Velocity], // 直接傳遞組件類別
+    none: [IsFrozen] // 不包含 IsFrozen 組件
 });
 
 // ...
 
-// Geotic does not dictate how your game loop should behave
+// Geotic 不會規定你的遊戲迴圈應該如何運作
 const loop = (dt: number): void => {
-    // Loop over the result set to update the position for all entities
-    // in the query. The query will always return an up-to-date array
-    // containing entities that match
+    // 遍歷結果集以更新查詢中所有實體的位置。
+    // 查詢將始終返回一個包含匹配實體的最新陣列。
     kinematics.get().forEach((entity: Entity) => {
-        // Assuming Position and Velocity components add properties to the entity directly
-        // For type safety, you might need entity.get(Position).x or cast entity to an extended type.
-        const pos = entity.get(Position); // Example of safer access
-        const vel = entity.get(Velocity);
+        // 假設 Position 和 Velocity 組件直接將屬性添加到實體上。
+        // 為了型別安全，你可能需要使用 entity.get(Position).x 或將實體轉換為擴充型別。
+        const pos = entity.get(Position); // 更安全的存取範例
+        const vel = entity.get(Velocity); // 更安全的存取範例
         if (pos && vel) {
             pos.x += vel.x * dt;
             pos.y += vel.y * dt;
@@ -104,49 +106,49 @@ const loop = (dt: number): void => {
 
 // ...
 
-// Serialize all world entities into a JS object
+// 將所有世界實體序列化為 JS 物件
 const data = world.serialize();
 
 // ...
 
-// Convert the serialized data back into entities and components
+// 將序列化資料轉換回實體和組件
 world.deserialize(data);
 
 ```
 
 ### Engine
 
-The `Engine` class is used to register all components and prefabs, and create new Worlds.
+`Engine` 類別用於註冊所有組件和預製件，並建立新的世界。
 
 ```typescript
-import { Engine, World, Component, PrefabData } from 'geotic';
+import { Engine, World, Component, PrefabData } from 'geotic'; // 匯入必要的類別
 
 const engine: Engine = new Engine();
 
-// Example Component class
+// 範例組件類別
 class MyComponent extends Component {
     static properties = { value: 10 };
     value!: number;
 }
 
-// Example Prefab data structure
+// 範例預製件資料結構
 const myPrefab: PrefabData = {
     name: 'MyPrefab',
     components: [{ type: 'MyComponent', properties: { value: 100 } }]
 };
 
-engine.registerComponent(MyComponent);
-engine.registerPrefab(myPrefab);
+engine.registerComponent(MyComponent); // 註冊組件
+engine.registerPrefab(myPrefab); // 註冊預製件
 
-const worldInstance: World = engine.createWorld(); // From previous example
-engine.destroyWorld(worldInstance);
+const worldInstance: World = engine.createWorld(); // 建立世界實例 (承接先前範例)
+engine.destroyWorld(worldInstance); // 銷毀世界實例
 ```
 
 Engine properties and methods:
 
--   **registerComponent(clazz: typeof Component)**: Register a Component so it can be used by entities. Components should generally be registered before creating worlds or entities that use them.
--   **registerPrefab(data: PrefabData)**: Register a Prefab to create pre-defined entities. Prefabs should generally be registered before creating worlds or entities from them.
--   **destroyWorld(world: World)**: Destroy a world instance.
+- **registerComponent(class: typeof Component)**: 註冊一個組件，使其可以被實體使用。組件通常應在建立使用它們的世界或實體之前註冊。
+- **registerPrefab(data: PrefabData)**: 註冊一個預製件 (Prefab) 以建立預先定義的實體。預製件通常應在根據它們建立世界或實體之前註冊。
+- **destroyWorld(world: World)**: Destroy a world instance.
 
 ### World
 
@@ -195,17 +197,19 @@ world.destroy();
 
 World properties and methods:
 
--   **createEntity(id?: string): Entity**: Create an `Entity`. Optionally provide an ID.
--   **getEntity(id: string): Entity | undefined**: Get an `Entity` by ID.
--   **getEntities(): IterableIterator<Entity>**: Get _all_ entities in this world.
--   **createPrefab(name: string, properties: Record<string, any> = {}): Entity | undefined**: Create an entity from the registered prefab. The `properties` object can be used to override default component values, including deeply nested properties (see prefab examples).
--   **destroyEntity(entityOrId: Entity | string)**: Destroys an entity. Functionally equivalent to `entity.destroy()`.
--   **destroyEntities()**: Destroys all entities in this world instance.
--   **serialize(entities?: Iterable<Entity> | Map<string, Entity>): SerializedWorldData**: Serialize and return all entity data into an object. Optionally specify a list of entities to serialize.
--   **deserialize(data: SerializedWorldData)**: Deserialize an object.
--   **cloneEntity(entity: Entity): Entity**: Clone an entity.
--   **createId(): string**: Generates a unique ID.
--   **destroy()**: Destroy all entities and queries in the world.
+| method | description |
+|:-------|:------------|
+| **createEntity(id?: string): Entity** | Create an `Entity`. Optionally provide an ID. |
+| **getEntity(id: string): Entity** | Create an `Entity`. Optionally provide an ID. |
+| **getEntities(): IterableIterator<Entity>** | Get _all_ entities in this world. |
+| **createPrefab(name: string, properties: Record<string, any> = {}): Entity** | Create an entity from the registered prefab. The `properties` object can be used to override default component values, including deeply nested properties (see prefab examples). |
+| **destroyEntity(entityOrId: Entity or String)** | Destroys an entity. Functionally equivalent to `entity.destroy()`. |
+| **destroyEntities()** | Destroys all entities in this world instance. |
+| **serialize(entities?: Iterable<Entity> or Map<string, Entity>): SerializedWorldData** | Serialize and return all entity data into an object. Optionally specify a list of entities to serialize. |
+| **deserialize(data: SerializedWorldData)** | Deserialize an object. |
+| **cloneEntity(entity: Entity): Entity** | Clone an entity. |
+| **createId(): string** | Generates a unique ID. |
+| **destroy()** | Destroy all entities and queries in the world. |
 
 ### Entity
 
@@ -215,21 +219,42 @@ Accessing components directly (e.g., `entity.position`) depends on the library's
 ```typescript
 import { Entity, World, Component, EntityEvent } from 'geotic'; // Assuming these are available
 
+interface NameProperties {
+    value: string;
+}
+
 // Define example components for context
-class Name extends Component { static properties = { value: "" }; value!: string; }
-class Position extends Component { static properties = { x:0, y:0, z:0 }; x!:number; y!:number; z!:number; }
-class Velocity extends Component { static properties = { x:0, y:0, z:0 }; x!:number; y!:number; z!:number; }
-class Health extends Component { static properties = { value: 0 }; value!: number; }
+class Name extends Component implements NameProperties { 
+    static properties: NameProperties = { value: "" }; 
+}
+
+class Position extends Component { 
+    static properties = { x:0, y:0, z:0 }; 
+    x!: number;
+    y!: number;
+    z!: number;
+}
+
+class Velocity extends Component {
+    static properties = { x:0, y:0, z:0 };
+    x!: number;
+    y!: number;
+    z!: number;
+}
+class Health extends Component { 
+    static properties = { value: 0 }; 
+    value!: number;
+}
+
 class Enemy extends Component {}
 
 // Assume world and components are registered
-declare const world: World; // From a previous setup
+const world: World; // From a previous setup
 world.engine.registerComponent(Name);
 world.engine.registerComponent(Position);
 world.engine.registerComponent(Velocity);
 world.engine.registerComponent(Health);
 world.engine.registerComponent(Enemy);
-
 
 const zombie: Entity = world.createEntity();
 
@@ -240,13 +265,13 @@ zombie.add(Health, { value: 200 });
 zombie.add(Enemy);
 
 // Assuming direct property access for components; type safety may require entity.get(Name)
-(zombie.get(Name) as Name).value = 'George';
-(zombie.get(Velocity) as Velocity).x += 12;
+zombie.name.value = 'George';
+zombie.velocity.x += 12;
 
 // Firing an event with specific data
 zombie.fireEvent('hit', { damage: 12 });
 
-const zombieHealth = zombie.get(Health) as Health;
+const zombieHealth = zombie.health;
 if (zombieHealth && zombieHealth.value <= 0) {
     zombie.destroy();
 }

@@ -75,10 +75,10 @@ describe('Entity', () => {
             // ArrayComponent defaults to name 'a'
             entity.add(ArrayComponent);
 
-            testComponentDestroySpy = jest.spyOn((entity as any).testComponent as TestComponent, '_onDestroyed');
-            emptyComponentDestroySpy = jest.spyOn((entity as any).emptyComponent as EmptyComponent, '_onDestroyed');
-            nestedComponentDestroySpy = jest.spyOn(((entity as any).nestedComponent as Record<string, NestedComponent>)['test'], '_onDestroyed');
-            arrayComponentDestroySpy = jest.spyOn(((entity as any).arrayComponent as ArrayComponent[])[0], '_onDestroyed');
+            testComponentDestroySpy = jest.spyOn(entity.testComponent as TestComponent, '_onDestroyed');
+            emptyComponentDestroySpy = jest.spyOn(entity.emptyComponent as EmptyComponent, '_onDestroyed');
+            nestedComponentDestroySpy = jest.spyOn((entity.nestedComponent as Record<string, NestedComponent>)['test'], '_onDestroyed');
+            arrayComponentDestroySpy = jest.spyOn((entity.arrayComponent as ArrayComponent[])[0], '_onDestroyed');
 
             entity.destroy();
         });
@@ -117,7 +117,7 @@ describe('Entity', () => {
             });
 
             it('should add the component to the entity as a camel cased property', () => {
-                expect((entity as any).testComponent).toBeDefined();
+                expect(entity.testComponent).toBeDefined();
             });
 
             it('should include the component in the entity components map', () => {
@@ -125,7 +125,7 @@ describe('Entity', () => {
             });
 
             it('should have the correct type of components', () => {
-                expect((entity as any).testComponent).toBeInstanceOf(TestComponent);
+                expect(entity.testComponent).toBeInstanceOf(TestComponent);
             });
         });
 
@@ -141,18 +141,18 @@ describe('Entity', () => {
             });
 
             it('should add the components to the entity as a camel cased property object', () => {
-                expect(((entity as any).nestedComponent as Record<string, NestedComponent>)[nameA]).toBeDefined();
-                expect(((entity as any).nestedComponent as Record<string, NestedComponent>)[nameB]).toBeDefined();
+                expect((entity.nestedComponent as Record<string, NestedComponent>)[nameA]).toBeDefined();
+                expect((entity.nestedComponent as Record<string, NestedComponent>)[nameB]).toBeDefined();
             });
 
             it('should have the correct type of components', () => {
-                expect(((entity as any).nestedComponent as Record<string, NestedComponent>)[nameA]).toBeInstanceOf(NestedComponent);
-                expect(((entity as any).nestedComponent as Record<string, NestedComponent>)[nameB]).toBeInstanceOf(NestedComponent);
+                expect((entity.nestedComponent as Record<string, NestedComponent>)[nameA]).toBeInstanceOf(NestedComponent);
+                expect((entity.nestedComponent as Record<string, NestedComponent>)[nameB]).toBeInstanceOf(NestedComponent);
             });
 
             it('should set component properties', () => {
-                expect(((entity as any).nestedComponent as Record<string, NestedComponent>)[nameA].name).toBe(nameA);
-                expect(((entity as any).nestedComponent as Record<string, NestedComponent>)[nameB].name).toBe(nameB);
+                expect((entity.nestedComponent as Record<string, NestedComponent>)[nameA].name).toBe(nameA);
+                expect((entity.nestedComponent as Record<string, NestedComponent>)[nameB].name).toBe(nameB);
             });
         });
 
@@ -168,7 +168,7 @@ describe('Entity', () => {
             });
 
             it('should add the components to the entity as a camel cased array property', () => {
-                const ac = (entity as any).arrayComponent as ArrayComponent[];
+                const ac = entity.arrayComponent as ArrayComponent[];
                 expect(ac).toBeDefined();
                 expect(ac).toHaveLength(2);
                 expect(ac[0].name).toBe(nameA);
@@ -176,7 +176,7 @@ describe('Entity', () => {
             });
 
             it('should assign the entity to each component', () => {
-                const ac = (entity as any).arrayComponent as ArrayComponent[];
+                const ac = entity.arrayComponent as ArrayComponent[];
                 expect(ac[0].entity).toBe(entity);
                 expect(ac[1].entity).toBe(entity);
             });
@@ -186,13 +186,13 @@ describe('Entity', () => {
             });
 
             it('should have the correct type of components', () => {
-                const ac = (entity as any).arrayComponent as ArrayComponent[];
+                const ac = entity.arrayComponent as ArrayComponent[];
                 expect(ac[0]).toBeInstanceOf(ArrayComponent);
                 expect(ac[1]).toBeInstanceOf(ArrayComponent);
             });
 
             it('should set component properties', () => {
-                const ac = (entity as any).arrayComponent as ArrayComponent[];
+                const ac = entity.arrayComponent as ArrayComponent[];
                 expect(ac[0].name).toBe(nameA);
                 expect(ac[1].name).toBe(nameB);
             });
@@ -210,12 +210,12 @@ describe('Entity', () => {
             let comp: TestComponent;
             beforeEach(() => {
                 entity.add(TestComponent);
-                comp = (entity as any).testComponent as TestComponent;
+                comp = entity.testComponent as TestComponent;
                 entity.remove(comp);
             });
 
             it('should remove the component direct accessor', () => {
-                expect((entity as any).testComponent).toBeUndefined();
+                expect(entity.testComponent).toBeUndefined();
             });
             it('should remove the component from the components map', () => {
                 expect(entity.components['testComponent']).toBeUndefined();
@@ -227,8 +227,8 @@ describe('Entity', () => {
             beforeEach(() => {
                 entity.add(NestedComponent, { name: 'a' });
                 entity.add(NestedComponent, { name: 'b' });
-                compA = ((entity as any).nestedComponent as Record<string, NestedComponent>)['a'];
-                compB = ((entity as any).nestedComponent as Record<string, NestedComponent>)['b'];
+                compA = (entity.nestedComponent as Record<string, NestedComponent>)['a'];
+                compB = (entity.nestedComponent as Record<string, NestedComponent>)['b'];
             });
 
             describe('when one of them is removed', () => {
@@ -237,10 +237,10 @@ describe('Entity', () => {
                 });
 
                 it('should remove the specific keyed component direct accessor', () => {
-                    expect(((entity as any).nestedComponent as Record<string, NestedComponent>)['b']).toBeUndefined();
+                    expect((entity.nestedComponent as Record<string, NestedComponent>)['b']).toBeUndefined();
                 });
                 it('should keep the other keyed component', () => {
-                    expect(((entity as any).nestedComponent as Record<string, NestedComponent>)['a']).toBeDefined();
+                    expect((entity.nestedComponent as Record<string, NestedComponent>)['a']).toBeDefined();
                 });
                  it('should remove from components map', () => {
                     expect((entity.components['nestedComponent'] as Record<string, NestedComponent>)['b']).toBeUndefined();
@@ -255,7 +255,7 @@ describe('Entity', () => {
 
                 it('should remove the parent direct accessor object', () => {
                     // The Entity logic might make the whole `entity.nestedComponent` undefined if all sub-keyed components are removed.
-                    expect((entity as any).nestedComponent).toBeUndefined();
+                    expect(entity.nestedComponent).toBeUndefined();
                 });
                  it('should remove from components map', () => {
                     expect(entity.components['nestedComponent']).toBeUndefined();
@@ -268,8 +268,8 @@ describe('Entity', () => {
             beforeEach(() => {
                 entity.add(ArrayComponent, { name: 'a' });
                 entity.add(ArrayComponent, { name: 'b' });
-                compA = ((entity as any).arrayComponent as ArrayComponent[])[0];
-                compB = ((entity as any).arrayComponent as ArrayComponent[])[1];
+                compA = (entity.arrayComponent as ArrayComponent[])[0];
+                compB = (entity.arrayComponent as ArrayComponent[])[1];
             });
 
             describe('when one of them is removed', () => {
@@ -281,15 +281,15 @@ describe('Entity', () => {
                     // This depends on Entity.remove's behavior for array components (splice vs setting to undefined)
                     // Assuming it splices or sets to undefined. If it splices, length changes.
                     // If `entity.remove` sets the element to undefined in the array:
-                    // expect(((entity as any).arrayComponent as ArrayComponent[])[1]).toBeUndefined();
+                    // expect((entity.arrayComponent as ArrayComponent[])[1]).toBeUndefined();
                     // If `entity.remove` splices the array:
-                    expect(((entity as any).arrayComponent as ArrayComponent[]).find(c => c === compB)).toBeUndefined();
-                    expect(((entity as any).arrayComponent as ArrayComponent[]).length).toBe(1);
+                    expect((entity.arrayComponent as ArrayComponent[]).find(c => c === compB)).toBeUndefined();
+                    expect((entity.arrayComponent as ArrayComponent[]).length).toBe(1);
 
                 });
 
                 it('should keep the other component', () => {
-                    expect(((entity as any).arrayComponent as ArrayComponent[])[0]).toBe(compA);
+                    expect((entity.arrayComponent as ArrayComponent[])[0]).toBe(compA);
                 });
             });
 
@@ -301,7 +301,7 @@ describe('Entity', () => {
 
                 it('should remove the parent direct accessor array', () => {
                     // The Entity logic might make `entity.arrayComponent` undefined if the array becomes empty.
-                    expect((entity as any).arrayComponent).toBeUndefined();
+                    expect(entity.arrayComponent).toBeUndefined();
                 });
                  it('should remove from components map', () => {
                     expect(entity.components['arrayComponent']).toBeUndefined();

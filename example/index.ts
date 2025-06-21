@@ -26,18 +26,19 @@ const ecs: Engine = new Engine();
 const world: World = ecs.createWorld();
 
 // Register Components - Cast to ComponentClass where necessary if constructor signature mismatch
-ecs.registerComponent(EquipmentSlot as ComponentClass);
-ecs.registerComponent(Material as ComponentClass);
-ecs.registerComponent(Position as ComponentClass);
-ecs.registerComponent(Listener as ComponentClass);
-ecs.registerComponent(Health as ComponentClass);
-ecs.registerComponent(Action as ComponentClass);
+ecs.registerComponent(EquipmentSlot);
+ecs.registerComponent(Material);
+ecs.registerComponent(Position);
+ecs.registerComponent(Listener);
+ecs.registerComponent(Health);
+ecs.registerComponent(Action);
 
 // Register Prefabs
 ecs.registerPrefab(BeingPrefab); // Assumes BeingPrefab matches PrefabData structure
 ecs.registerPrefab(HumanPrefab); // Assumes HumanPrefab matches PrefabData structure
 
-const player: Entity = world.createEntity('player'); // Added optional ID
+const player: Entity = world.createEntity(); // Added optional ID
+const player2: Entity = world.createEntity(); // Added optional ID
 const sword: Entity = world.createEntity('sword');
 
 sword.add(Material, { name: 'bronze' }); // Properties should match Material.properties
@@ -52,19 +53,25 @@ player.add(EquipmentSlot, {
 player.add(EquipmentSlot, {
     name: 'rightHand',
     allowedTypes: ['hand'],
-    content: sword // Example: equipping the sword
+    content: sword.id // Example: equipping the sword
 });
 
+console.log(player.equipmentSlot.rightHand.content);
+
+// 程式中止
+// process.exit();
+
 console.log(player.serialize());
+console.log(player2.serialize());
 
 const q: Query = world.createQuery({
-    all: [Position as unknown as ComponentClassWithCBit], // Component class directly
+    all: [Position], // Component class directly
 });
 
 // Accessing component data - ensure 'position' is a valid accessor for Position component
 // The dynamic accessor might not be known to TS without declaration merging or explicit casting.
 // For now, assume `entity.position` works if Entity class has an index signature `[key: string]: any;`
-q.get().forEach((e: Entity) => console.log((e as any).position));
+q.get().forEach((e: Entity) => console.log(e.position));
 
 // --- Typed versions of some commented out examples ---
 

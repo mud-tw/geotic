@@ -1,4 +1,4 @@
-import { Engine, Component, World, Entity, EntityEvent, ComponentClass } from '@src/index'; // Adjusted path
+import { Engine, Component, World, Entity, EntityEvent, ComponentClass } from '../../src'; // Adjusted path
 import { EmptyComponent } from '../data/components'; // Adjusted path
 
 // Use global chance instance if available

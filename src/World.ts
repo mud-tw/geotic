@@ -1,8 +1,8 @@
-import { Entity, SerializedEntity } from './Entity.js';
-import { Query, QueryFilters } from './Query.js';
-import { camelString } from './util/string-util';
-import type { Engine } from './Engine.js';
-import type { ComponentProperties } from './Component.js';
+import { Entity, SerializedEntity } from './Entity';
+import { Query, QueryFilters } from './Query';
+import { camelString, uuid } from './util/string-util';
+import type { Engine } from './Engine';
+import type { ComponentProperties } from './Component';
 import type { ComponentClass } from './ComponentRegistry'; // Assuming ComponentRegistry exports this
 
 export interface SerializedWorldData {
@@ -21,7 +21,8 @@ export class World {
 
     createId(): string {
         // Consider using a more robust UUID generator if these IDs need to be globally unique
-        return `${++this._id_counter}-${Math.random().toString(36).substring(2, 11)}`;
+        // return `${++this._id_counter}-${Math.random().toString(36).substring(2, 11)}`;
+        return uuid(); // Using uuid for better uniqueness
     }
 
     getEntity(id: string): Entity | undefined {

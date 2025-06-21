@@ -14,8 +14,8 @@ describe('Query Integration Test', () => { // Renamed for clarity
     class ComponentC extends Component {}
 
     // Helper casts for query filters
-    const CompA_Query = ComponentA as unknown as ComponentClassWithCBit;
-    const CompB_Query = ComponentB as unknown as ComponentClassWithCBit;
+    const CompA_Query = ComponentA as ComponentClassWithCBit;
+    const CompB_Query = ComponentB as ComponentClassWithCBit;
     // const CompC_Query = ComponentC as unknown as ComponentClassWithCBit; // If needed
 
     beforeEach(() => {
@@ -36,11 +36,16 @@ describe('Query Integration Test', () => { // Renamed for clarity
 
     describe('when there are no matching entities initially', () => {
         beforeEach(() => {
+            // 1. 定義查詢過濾條件
             const filters: QueryFilters = { any: [CompA_Query] };
+            // 2. 根據過濾條件在 `world` 中建立一個新的查詢實例
             query = world.createQuery(filters);
+            // 3. 註冊一個回呼函式，當有實體被加入到此查詢結果時會被呼叫
             query.onEntityAdded(onAddCallback);
+            // 4. 註冊一個回呼函式，當有實體從此查詢結果中被移除時會被呼叫
             query.onEntityRemoved(onRemoveCallback);
         });
+        
 
         it('should return an empty array from get()', () => {
             const result: Entity[] = query.get();
@@ -124,6 +129,8 @@ describe('Query Integration Test', () => { // Renamed for clarity
             beforeEach(() => {
                 // Ensure entityA was part of the query
                 expect(query.get()).toContain(entityA);
+                // Register onRemoveCallback before modifying
+                query.onEntityRemoved(onRemoveCallback);
                 // Now remove the component that made it match
                 ((entityA as any).componentA as Component).destroy();
             });
@@ -142,6 +149,7 @@ describe('Query Integration Test', () => { // Renamed for clarity
         describe('when an entity is destroyed', () => {
             beforeEach(() => {
                 expect(query.get()).toContain(entityA);
+                query.onEntityRemoved(onRemoveCallback);
                 entityA.destroy();
             });
 

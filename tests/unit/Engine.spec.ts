@@ -34,7 +34,7 @@ describe('Engine', () => {
         it('should allow component registration', () => {
             // Check if the component is retrievable via internal registry (conceptual test)
             // This might require exposing a way to get a component from the engine or its registry for testing
-            const registry = (engine as any)._components; // Accessing private member for test
+            const registry = engine._components; // Accessing private member for test
             expect(registry.get('testComponent')).toBe(TestComponent);
         });
     });
@@ -47,7 +47,7 @@ describe('Engine', () => {
 
         it('should allow prefab registration', () => {
             // Check if prefab is retrievable (conceptual test)
-            const registry = (engine as any)._prefabs; // Accessing private member for test
+            const registry = engine._prefabs; // Accessing private member for test
             expect(registry.get('TestPrefab')).toBeDefined();
         });
     });

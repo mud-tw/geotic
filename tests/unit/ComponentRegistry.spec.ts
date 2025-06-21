@@ -1,4 +1,4 @@
-import { Engine, ComponentRegistry, ComponentClass } from '@src/index'; // Adjusted path, ComponentClass for casting
+import { Engine, ComponentRegistry, ComponentClass } from '../../src'; // Adjusted path, ComponentClass for casting
 import { EmptyComponent } from '../data/components'; // Adjusted path relative to tests/unit
 
 describe('ComponentRegistry', () => {

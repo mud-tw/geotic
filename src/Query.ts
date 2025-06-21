@@ -72,27 +72,43 @@ export class Query {
         return anyMatch && allMatch && noneMatch;
     }
 
+    /**
+     * 判斷一個實體是否為此查詢的候選者，並更新快取與觸發事件。
+     * 
+     * @param entity 要檢查的實體
+     * @returns 如果實體是候選者（即符合查詢條件且正在被追蹤），則返回 true；否則返回 false。
+     */
     candidate(entity: Entity): boolean {
-        const idx = this.idx(entity);
-        const isTracking = idx >= 0;
-
-        // Check if entity is not destroyed and matches the query criteria
+        // 1. 檢查實體是否已存在於快取中
+        const idx = this.idx(entity); // this.idx(entity) 會返回實體在 _cache 陣列中的索引，若不存在則為 -1
+        const isTracking = idx >= 0;  // 如果 idx >= 0，表示此實體已在快取中，正在被追蹤
+    
+        // 2. 檢查實體是否符合查詢條件：
+        //    - 實體未被銷毀 (entity.isDestroyed === false)
+        //    - 實體的組件構成符合查詢的篩選條件 (this.matches(entity) === true)
         if (!entity.isDestroyed && this.matches(entity)) {
+            // 2.1 如果實體符合條件，且尚未被追蹤
             if (!isTracking) {
-                // Add to cache and notify listeners if not already tracking
+                // 將實體加入快取
                 this._cache.push(entity);
+                // 觸發所有 "onEntityAdded" (實體加入查詢) 的監聽器
                 this._onAddListeners.forEach((cb) => cb(entity));
             }
-            return true; // Entity is a candidate and is now being tracked
+            // 實體現在是候選者且已被追蹤
+            return true;
         }
-
-        // If entity is being tracked but no longer matches (or is destroyed)
+    
+        // 3. 如果實體不符合查詢條件 (例如被銷毀，或組件不再匹配)，
+        //    但先前正在被追蹤
         if (isTracking) {
+            // 從快取中移除此實體
             this._cache.splice(idx, 1);
+            // 觸發所有 "onEntityRemoved" (實體從查詢中移除) 的監聽器
             this._onRemoveListeners.forEach((cb) => cb(entity));
         }
-
-        return false; // Entity is not a candidate or was removed
+    
+        // 4. 如果執行到這裡，表示實體不符合查詢條件，或者已被從快取中移除
+        return false;
     }
 
     refresh(): void {
