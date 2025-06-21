@@ -1,6 +1,6 @@
-import type { Entity } from './Entity.js';
-import type PrefabComponent from './PrefabComponent.js'; // Corrected import
-import type { Component } from './Component.js';
+import type { Entity } from './Entity';
+import type PrefabComponent from './PrefabComponent'; // Corrected import
+import type { Component } from './Component';
 
 // Define a type for the component class (constructor)
 type ComponentClass<T extends Component = Component> = new (...args: any[]) => T;

@@ -1,6 +1,6 @@
-import { ComponentRegistry } from './ComponentRegistry.js';
-import { PrefabRegistry, PrefabData } from './PrefabRegistry.js';
-import { World } from './World.js';
+import { ComponentRegistry } from './ComponentRegistry';
+import { PrefabRegistry, PrefabData } from './PrefabRegistry';
+import { World } from './World';
 import type { Component } from './Component';
 
 // Define a type for the component class (constructor)

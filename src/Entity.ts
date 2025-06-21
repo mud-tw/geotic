@@ -1,5 +1,5 @@
-import { Component } from './Component.js';
-import { EntityEvent } from './EntityEvent.js';
+import { Component } from './Component';
+import { EntityEvent } from './EntityEvent';
 import { addBit, hasBit, subtractBit } from './util/bit-util';
 import type { World } from './World';
 import type { ComponentProperties } from './Component'; // Assuming Component.ts exports this
@@ -31,7 +31,7 @@ const attachComponentKeyed = (entity: Entity, component: Component & { _ckey: st
     }
     const componentMap = entity.components[key] as { [key: string]: Component };
     componentMap[component[component.keyProperty!]] = component;
-    (entity as any)[key][component[component.keyProperty!]] = component;
+    entity[key][component[component.keyProperty!]] = component;
 };
 
 const attachComponentArray = (entity: Entity, component: Component & { _ckey: string }): void => {
@@ -43,7 +43,7 @@ const attachComponentArray = (entity: Entity, component: Component & { _ckey: st
     }
     const componentArray = entity.components[key] as Component[];
     componentArray.push(component);
-    ((entity as any)[key] as Component[]).push(component);
+    (entity[key] as Component[]).push(component);
 };
 
 const removeComponent = (entity: Entity, component: Component & { _ckey: string, _cbit: bigint }): void => {
@@ -119,7 +119,6 @@ export interface SerializedEntity {
     [componentKey: string]: any; // This will be ComponentProperties, ComponentProperties[], or {[key: string]: ComponentProperties}
 }
 
-
 export class Entity {
     world: World;
     id: string;
@@ -129,7 +128,6 @@ export class Entity {
     _qeligible: boolean = true;
     // Allow dynamic properties for component access like entity.position
     [key: string]: any;
-
 
     constructor(world: World, id: string) {
         this.world = world;
@@ -174,7 +172,7 @@ export class Entity {
 
         if (staticProps.keyProperty) {
             // Cast component to any for removeComponentKeyed as it expects keyProperty directly for now
-            removeComponentKeyed(this, component as any);
+            removeComponentKeyed(this, component);
         } else if (staticProps.allowMultiple) {
             removeComponentArray(this, component);
         } else {
@@ -183,31 +181,57 @@ export class Entity {
         component._onDestroyed();
     }
 
+    /**
+     * 銷毀此實體。
+     * 這會移除所有附加的組件，從世界中移除此實體，並將其標記為已銷毀。
+     */
     destroy(): void {
+        // 1. 遍歷此實體上所有已註冊的組件
+        // this.components 是一個物件，其鍵是組件的 ckey (駝峰式命名的組件類別名稱)，
+        // 值可能是單個組件實例、組件實例陣列 (對於允許多個的組件) 或
+        // 組件實例的物件 (對於鍵控組件)。
         for (const k in this.components) {
-            const v = this.components[k];
-
+            const v = this.components[k]; // v 是組件實例、陣列或物件
+    
+            // 2. 根據組件的儲存方式處理組件的銷毀邏輯
             if (v instanceof Component) {
-                this._cbits = subtractBit(this._cbits, (v as any)._cbit);
+                // 2.1 如果 v 是一個單獨的組件實例
+                // 從實體的組件位元遮罩中移除此組件的位元
+                this._cbits = subtractBit(this._cbits, v._cbit);
+                // 呼叫組件內部的 _onDestroyed 方法，執行組件特定的清理邏輯
                 (v as any)._onDestroyed();
             } else if (Array.isArray(v)) {
+                // 2.2 如果 v 是一個組件實例的陣列 (例如允許多個的組件)
                 for (const component of v) {
-                    this._cbits = subtractBit(this._cbits, (component as any)._cbit);
-                    (component as any)._onDestroyed();
+                    // 對陣列中的每個組件執行相同的操作
+                    this._cbits = subtractBit(this._cbits, component._cbit);
+                    component._onDestroyed();
                 }
             } else { // Object for keyed components
+                // 2.3 如果 v 是一個物件，代表鍵控組件 (例如，按名稱區分的 EquipmentSlot)
                 for (const component of Object.values(v)) {
-                    this._cbits = subtractBit(this._cbits, (component as any)._cbit);
-                    (component as any)._onDestroyed();
+                    // 對物件中的每個組件實例執行相同的操作
+                    this._cbits = subtractBit(this._cbits, component._cbit);
+                    component._onDestroyed();
                 }
             }
-            delete (this as any)[k]; // Remove direct access property
+            // 3. 從實體上移除對此組件(或組件集合)的直接存取屬性 (例如 entity.position)
+            delete (this as any)[k];
+            // 4. 從實體的內部 components 映射中移除此組件(或組件集合)
             delete this.components[k];
         }
-
+    
+        // 5. 通知查詢系統此實體的組件構成已改變 (現在是空的)
+        // 這會讓查詢系統更新其快取的結果集
         this._candidacy();
+    
+        // 6. 通知世界 (World) 此實體已被銷毀
+        // World 會將此實體從其活躍實體列表中移除
         this.world._destroyed(this.id);
+    
+        // 7. 清空實體的 components 映射
         this.components = {};
+        // 8. 將實體的 isDestroyed 標記設為 true
         this.isDestroyed = true;
     }
 
@@ -253,7 +277,7 @@ export class Entity {
                 }
             } else { // Object for keyed components
                 for (const component of Object.values(v)) {
-                    (component as any)._onEvent(evt);
+                    component._onEvent(evt);
                     if (evt.prevented) return evt;
                 }
             }

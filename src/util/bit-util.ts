@@ -1,4 +1,4 @@
-const ONE: bigint = 1n;
+export const ONE: bigint = 1n;
 
 export function subtractBit(num: bigint, bit: bigint): bigint {
     return num & ~(1n << bit);

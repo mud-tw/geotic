@@ -1,5 +1,5 @@
-import PrefabComponent from './PrefabComponent.js';
-import Prefab from './Prefab.js';
+import PrefabComponent from './PrefabComponent';
+import Prefab from './Prefab';
 import { camelString } from './util/string-util';
 import type { Engine } from './Engine';
 import type { World } from './World';
