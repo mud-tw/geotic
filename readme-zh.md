@@ -560,6 +560,59 @@ const results: Entity[] = query.get();
 // results.splice(0, 1); // DANGER! Do not modify results if immutableResult is false!
 ```
 
+#### Reactive Queries / Observing Changes (反應式查詢 / 觀察變更)
+
+除了手動呼叫 `query.get()` 獲取結果外，您還可以觀察查詢的變更，以便在實體進入或離開查詢結果集時獲得通知。這是透過 `query.observe()` 方法實現的。
+
+```typescript
+import { World, Entity, Component, Query, EntityObserver, QuerySubscription, ObserveOptions } from 'geotic';
+// Assume ComponentA, world, etc. are defined as in previous examples
+
+class ComponentA extends Component { static properties = {}; }
+// Register ComponentA with the engine...
+// const world = engine.createWorld();
+
+const queryForA: Query = world.createQuery({ all: [ComponentA] });
+
+const observer: EntityObserver = {
+    onEnter: (entity: Entity) => {
+        console.log(`實體 ${entity.id} 進入了查詢 (擁有 ComponentA)`);
+        // 例如：為此實體建立渲染物件
+    },
+    onExit: (entity: Entity) => {
+        console.log(`實體 ${entity.id} 離開了查詢 (不再擁有 ComponentA 或已被銷毀)`);
+        // 例如：移除此實體的渲染物件
+    }
+};
+
+const options: ObserveOptions = {
+    emitCurrent: true // 訂閱時立即對已在查詢中的實體觸發 onEnter
+};
+
+// 開始觀察
+const subscription: QuerySubscription = queryForA.observe(observer, options);
+
+// ... 之後，當不再需要監聽時:
+// subscription.unsubscribe();
+```
+
+**Reactive Query API:**
+
+-   **`query.observe(observer: EntityObserver, options?: ObserveOptions): QuerySubscription`**:
+    *   訂閱查詢結果集的變更。
+    *   `observer`: 一個包含回呼函式的物件：
+        *   `onEnter?: (entity: Entity) => void`: 當實體開始匹配查詢並進入結果集時呼叫。
+        *   `onExit?: (entity: Entity) => void`: 當實體不再匹配查詢或被銷毀而離開結果集時呼叫。
+    *   `options?`: 可選的配置物件：
+        *   `emitCurrent?: boolean`: 若為 `true`，則在呼叫 `observe` 時，會立即對所有已在查詢結果集中的實體觸發 `onEnter` 回呼。預設為 `false`。
+    *   返回一個 `QuerySubscription` 物件，其上有：
+        *   `unsubscribe(): void`: 呼叫此方法以停止接收此訂閱的更新。
+        *   `closed: boolean`: 一個唯讀屬性，若訂閱已取消則為 `true`。
+
+-   **`query.onEntityAdded(fn: (entity: Entity) => void): () => void`**: (**已棄用**) 新增一個當實體被建立或更新以匹配查詢時的回呼。返回一個用於取消註冊此回呼的函式。建議改用 `query.observe({ onEnter: fn })`。
+-   **`query.onEntityRemoved(fn: (entity: Entity) => void): () => void`**: (**已棄用**) 新增一個當實體被移除或更新以不再匹配查詢時的回呼。返回一個用於取消註冊此回呼的函式。建議改用 `query.observe({ onExit: fn })`。
+
+
 ### Serialization
 
 Only component properties defined in their `static properties` will be serialized. Methods and other runtime state are not included.
