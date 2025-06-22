@@ -55,3 +55,79 @@ export class ArrayComponent extends Component {
     name!: string; // Instance properties
     hello!: string;
 }
+
+// --- Components for Entity.add typing tests ---
+
+export interface PositionComponentProps {
+    x?: number;
+    y?: number;
+}
+export class PositionComponent extends Component {
+    static properties = {
+        x: 0,
+        y: 0,
+    };
+    x: number;
+    y: number;
+
+    constructor(props?: PositionComponentProps) {
+        super(props);
+        this.x = props?.x ?? (this.constructor as typeof PositionComponent).properties.x;
+        this.y = props?.y ?? (this.constructor as typeof PositionComponent).properties.y;
+    }
+}
+
+export interface VelocityComponentProps {
+    dx: number;
+    dy: number;
+}
+export class VelocityComponent extends Component {
+    static properties = {
+        dx: 0,
+        dy: 0,
+    };
+    dx: number;
+    dy: number;
+
+    constructor(props: VelocityComponentProps) { // Note: props is not optional
+        super(props);
+        this.dx = props.dx;
+        this.dy = props.dy;
+    }
+}
+
+export class TagComponent extends Component {
+    // No specific constructor, relies on base
+    static properties = {
+        tag: "default"
+    };
+    tag: string = "default";
+
+    // If we want to test adding it without properties, its constructor should allow it.
+    // The base Component constructor already allows `properties` to be undefined.
+    constructor(props?: { tag?: string }) { // Make constructor accept optional tag
+        super(props);
+        if (props && props.tag !== undefined) {
+            this.tag = props.tag;
+        } else {
+            this.tag = (this.constructor as typeof TagComponent).properties.tag;
+        }
+    }
+}
+
+export interface DataComponentProps {
+    value?: string | null;
+}
+export class DataComponent extends Component {
+    static properties = {
+        value: null,
+    };
+    value: string | null;
+
+    constructor(props?: DataComponentProps) {
+        super(props);
+        // Ensure 'value' key existence for Object.assign behavior if props is undefined
+        const defaultProps = (this.constructor as typeof DataComponent).properties;
+        this.value = props?.value === undefined ? defaultProps.value : props.value;
+    }
+}

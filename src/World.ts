@@ -11,9 +11,9 @@ export interface SerializedWorldData {
 
 export class World {
     engine: Engine;
-    private _id_counter: number = 0; // Renamed from _id to avoid confusion with entity id
+    private _id_counter: number = 0;
     private _queries: Query[] = [];
-    _entities: Map<string, Entity> = new Map(); // Made package-private for Query.refresh for now
+    private _entities: Map<string, Entity> = new Map(); // Now private
 
     constructor(engine: Engine) {
         this.engine = engine;
@@ -73,9 +73,7 @@ export class World {
     }
 
     createPrefab(name: string, properties: Partial<ComponentProperties> = {}): Entity | undefined {
-        // engine._prefabs is private, so we should use a public method on engine if available
-        // For now, assuming direct access for conversion, but this should be refactored in Engine.ts
-        return this.engine._prefabs.create(this, name, properties);
+        return this.engine.createPrefabInstance(this, name, properties);
     }
 
     serialize(entities?: Iterable<Entity> | Map<string, Entity>): SerializedWorldData {
@@ -131,8 +129,7 @@ export class World {
 
         Object.entries(componentsData).forEach(([componentKey, componentValue]) => {
             const componentTypeString = camelString(componentKey);
-            // Accessing _components is a direct reach, should be through a getter in Engine
-            const componentClass = this.engine._components.get(componentTypeString) as (ComponentClass & {allowMultiple?: boolean}) | undefined;
+            const componentClass = this.engine.getComponentClass(componentTypeString) as (ComponentClass & {allowMultiple?: boolean}) | undefined;
 
             if (!componentClass) {
                 console.warn(`Component class for type "${componentTypeString}" (key: "${componentKey}") not found in engine's component registry.`);
@@ -164,12 +161,12 @@ export class World {
     }
 
     // Called by Entity when its component makeup changes
-    _candidate(entity: Entity): void {
+    public entityCompositionChanged(entity: Entity): void { // Renamed from _candidate and made public
         this._queries.forEach((q) => q.candidate(entity));
     }
 
     // Called by Entity when it's destroyed
-    _destroyed(id: string): boolean {
+    public entityWasDestroyed(id: string): boolean { // Renamed from _destroyed and made public
         return this._entities.delete(id);
     }
 }

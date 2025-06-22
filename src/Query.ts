@@ -113,10 +113,12 @@ export class Query {
 
     refresh(): void {
         this._cache = [];
-        // Assuming _world._entities is a Map<string, Entity> or similar iterable
-        this._world._entities.forEach((entity: Entity) => {
+        // 假設 `_world.getEntities()` 返回一個 `IterableIterator<Entity>`。
+        // `IterableIterator` 沒有 `forEach` 方法，所以需要將其轉換為陣列或使用 `for...of` 迴圈。
+        // 將 `IterableIterator` 轉換為陣列，然後遍歷每個實體。
+        for (const entity of this._world.getEntities()) {
             this.candidate(entity);
-        });
+        }
     }
 
     get(): Entity[] {
