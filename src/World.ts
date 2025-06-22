@@ -3,39 +3,84 @@ import { Query, QueryFilters } from './Query';
 import { camelString, uuid } from './util/string-util';
 import type { Engine } from './Engine';
 import type { ComponentProperties } from './Component';
-import type { ComponentClass } from './ComponentRegistry'; // Assuming ComponentRegistry exports this
+import type { ComponentClass } from './ComponentRegistry';
 
+/**
+ * Defines the structure for serialized world data, primarily containing a list of serialized entities.
+ */
 export interface SerializedWorldData {
     entities: SerializedEntity[];
 }
 
+/**
+ * A World is a container for entities, components, and queries.
+ * It represents a distinct simulation space. An application can have multiple worlds.
+ *
+ * Relationships:
+ * - Belongs to an `Engine`, which provides access to component and prefab registries.
+ * - Manages a collection of `Entity` instances.
+ * - Manages a collection of `Query` instances, which are used to efficiently retrieve entities
+ *   based on their components.
+ *
+ * Responsibilities:
+ * - Creating and destroying entities.
+ * - Creating and managing queries.
+ * - Serializing and deserializing the state of all its entities and components.
+ * - Cloning entities.
+ * - Tracking changes to entity compositions to update queries.
+ */
 export class World {
+    /** The engine instance this world belongs to. Used to access shared resources like component definitions. */
     engine: Engine;
+    /** @private Counter for generating simple sequential IDs, primarily as a fallback or for non-UUID needs. */
     private _id_counter: number = 0;
+    /** @private List of all queries registered in this world. */
     private _queries: Query[] = [];
-    private _entities: Map<string, Entity> = new Map(); // Now private
+    /** @private Map storing all entities in this world, keyed by their unique ID. */
+    private _entities: Map<string, Entity> = new Map();
 
+    /**
+     * Creates a new World instance.
+     * @param engine The engine this world will be associated with.
+     */
     constructor(engine: Engine) {
         this.engine = engine;
     }
 
+    /**
+     * Generates a unique ID for an entity.
+     * Uses a UUID generator for robust uniqueness.
+     * @returns A unique string ID.
+     */
     createId(): string {
-        // Consider using a more robust UUID generator if these IDs need to be globally unique
-        // return `${++this._id_counter}-${Math.random().toString(36).substring(2, 11)}`;
-        return uuid(); // Using uuid for better uniqueness
+        return uuid();
     }
 
+    /**
+     * Retrieves an entity by its ID.
+     * @param id The unique ID of the entity.
+     * @returns The Entity instance if found, otherwise undefined.
+     */
     getEntity(id: string): Entity | undefined {
         return this._entities.get(id);
     }
 
+    /**
+     * Gets an iterator for all entities currently active in this world.
+     * @returns An IterableIterator yielding all Entity instances.
+     */
     getEntities(): IterableIterator<Entity> {
         return this._entities.values();
     }
 
+    /**
+     * Creates a new entity in this world.
+     * If an ID is provided and already exists, a warning is issued and the existing entity is returned.
+     * @param id Optional. A specific ID to assign to the new entity. If not provided, a new unique ID is generated.
+     * @returns The newly created (or existing, if ID conflicted) Entity instance.
+     */
     createEntity(id: string = this.createId()): Entity {
         if (this._entities.has(id)) {
-            // Or throw an error, depending on desired behavior
             console.warn(`Entity with id "${id}" already exists. Returning existing entity.`);
             return this._entities.get(id)!;
         }
@@ -44,38 +89,71 @@ export class World {
         return entity;
     }
 
+    /**
+     * Destroys an entity by its ID.
+     * This involves calling the entity's own `destroy` method, which handles component cleanup
+     * and notification to the world and queries.
+     * @param id The ID of the entity to destroy.
+     */
     destroyEntity(id: string): void {
         const entity = this.getEntity(id);
         if (entity) {
-            entity.destroy(); // This should trigger _destroyed and _candidate
+            entity.destroy();
         }
     }
 
+    /**
+     * Destroys all entities currently active in this world.
+     * Iterates over a copy of the entity list to avoid modification issues during destruction.
+     */
     destroyEntities(): void {
-        // Create a copy of entities to iterate over, as entity.destroy() modifies the collection
         const allEntities = Array.from(this._entities.values());
         allEntities.forEach((entity) => {
             entity.destroy();
         });
     }
 
+    /**
+     * Destroys the world and all its contents.
+     * This includes all entities and queries. Resets internal state.
+     */
     destroy(): void {
         this.destroyEntities();
         this._id_counter = 0;
         this._queries = [];
-        this._entities.clear(); // More explicit than new Map()
+        this._entities.clear();
     }
 
+    /**
+     * Creates a new query in this world based on the provided component filters.
+     * The query will dynamically track entities that match the criteria.
+     * @param filters An object defining which components entities must have (`all`),
+     *                may have (`any`), or must not have (`none`).
+     * @returns The newly created Query instance.
+     */
     createQuery(filters: QueryFilters): Query {
         const query = new Query(this, filters);
         this._queries.push(query);
         return query;
     }
 
+    /**
+     * Creates an entity from a registered prefab.
+     * Delegates the actual instantiation to the engine's `PrefabRegistry`.
+     * @param name The name of the prefab to instantiate.
+     * @param properties Optional. An object with properties to override the prefab's defaults.
+     * @returns The created Entity instance if the prefab exists, otherwise undefined.
+     */
     createPrefab(name: string, properties: Partial<ComponentProperties> = {}): Entity | undefined {
         return this.engine.createPrefabInstance(this, name, properties);
     }
 
+    /**
+     * Serializes the state of entities in this world into a JSON-compatible object.
+     * By default, serializes all entities. Can optionally serialize a specific subset.
+     * @param entities Optional. An iterable or Map of entities to serialize. If not provided, all entities in the world are serialized.
+     * @returns A `SerializedWorldData` object containing the serialized entity data.
+     */
     serialize(entities?: Iterable<Entity> | Map<string, Entity>): SerializedWorldData {
         const json: SerializedEntity[] = [];
         let entityList: Iterable<Entity>;
@@ -84,51 +162,72 @@ export class World {
             if (entities instanceof Map) {
                 entityList = entities.values();
             } else {
-                entityList = entities; // entities is already Iterable<Entity>
+                entityList = entities;
             }
         } else {
             entityList = this._entities.values();
         }
 
-        for (const e of entityList) { // Changed to for...of loop for iterables
+        for (const e of entityList) {
             json.push(e.serialize());
-        } // Removed extra );
+        }
 
         return {
             entities: json,
         };
     }
 
+    /**
+     * Clones an existing entity, creating a new entity with a new ID but identical components and properties.
+     * @param entity The entity to clone.
+     * @returns The newly created (cloned) Entity instance.
+     */
     cloneEntity(entity: Entity): Entity {
         const data = entity.serialize();
         data.id = this.createId(); // Ensure the cloned entity gets a new unique ID
         return this._deserializeEntity(data);
     }
 
+    /**
+     * Deserializes world data, recreating entities and their components.
+     * This is a two-pass process:
+     * 1. Create all entity instances (or retrieve existing ones by ID).
+     * 2. Populate entities with their components based on the serialized data.
+     * This approach helps manage potential inter-entity references if they were supported more deeply.
+     * @param data The `SerializedWorldData` to deserialize.
+     */
     deserialize(data: SerializedWorldData): void {
-        // First pass: create all entities to handle potential relationships in components
-        // (though this simple deserialization doesn't handle inter-entity component references)
         for (const entityData of data.entities) {
             this._createOrGetEntityById(entityData.id);
         }
 
-        // Second pass: deserialize components
         for (const entityData of data.entities) {
             this._deserializeEntity(entityData);
         }
     }
 
+    /**
+     * @private Helper method to either get an existing entity by ID or create a new one if it doesn't exist.
+     * Used during deserialization.
+     * @param id The ID of the entity to get or create.
+     * @returns The existing or newly created Entity.
+     */
     private _createOrGetEntityById(id: string): Entity {
         return this.getEntity(id) || this.createEntity(id);
     }
 
+    /**
+     * @private Deserializes a single entity's data, adding components to it.
+     * @param data The `SerializedEntity` data for a single entity.
+     * @returns The Entity instance after components have been added.
+     */
     private _deserializeEntity(data: SerializedEntity): Entity {
         const { id, ...componentsData } = data;
         const entity = this._createOrGetEntityById(id);
-        entity._qeligible = false; // Disable query candidacy during component population
+        entity._qeligible = false; // Temporarily disable query eligibility for performance
 
         Object.entries(componentsData).forEach(([componentKey, componentValue]) => {
-            const componentTypeString = camelString(componentKey);
+            const componentTypeString = camelString(componentKey); // Convert serialized key to component ckey
             const componentClass = this.engine.getComponentClass(componentTypeString) as (ComponentClass & {allowMultiple?: boolean}) | undefined;
 
             if (!componentClass) {
@@ -136,8 +235,8 @@ export class World {
                 return;
             }
 
+            // Handle components that allow multiple instances (arrays or keyed objects)
             if (componentClass.allowMultiple) {
-                // Expect componentValue to be an array or object of component instances data
                 if (Array.isArray(componentValue)) { // Array of component properties
                     componentValue.forEach((singleComponentProps: any) => {
                         entity.add(componentClass, singleComponentProps);
@@ -150,23 +249,35 @@ export class World {
                      console.warn(`Expected array or object for multi-component "${componentKey}", got:`, componentValue);
                 }
             } else {
-                // Single component, componentValue is its properties
+                // Single component instance
                 entity.add(componentClass, componentValue);
             }
         });
 
-        entity._qeligible = true;
-        entity._candidacy();
+        entity._qeligible = true; // Re-enable query eligibility
+        entity._candidacy(); // Notify queries that this entity's composition might have changed
         return entity;
     }
 
-    // Called by Entity when its component makeup changes
-    public entityCompositionChanged(entity: Entity): void { // Renamed from _candidate and made public
+    /**
+     * Called by an Entity when its component composition changes (component added/removed).
+     * This method iterates through all registered queries and notifies them to re-evaluate
+     * whether the changed entity matches their criteria.
+     * @param entity The entity whose composition has changed.
+     * @public
+     */
+    public entityCompositionChanged(entity: Entity): void {
         this._queries.forEach((q) => q.candidate(entity));
     }
 
-    // Called by Entity when it's destroyed
-    public entityWasDestroyed(id: string): boolean { // Renamed from _destroyed and made public
+    /**
+     * Called by an Entity when it is destroyed.
+     * This method removes the entity from the world's internal list of active entities.
+     * @param id The ID of the entity that was destroyed.
+     * @returns `true` if the entity was successfully found and removed, `false` otherwise.
+     * @public
+     */
+    public entityWasDestroyed(id: string): boolean {
         return this._entities.delete(id);
     }
 }

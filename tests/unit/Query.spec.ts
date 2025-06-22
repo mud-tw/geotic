@@ -258,4 +258,57 @@ describe('Query', () => {
             expect(onRemovedCb2).toHaveBeenCalledWith(entity);
         });
     });
+
+    describe('get() method and immutableResult option', () => {
+        beforeEach(() => {
+            entity.add(ComponentA); // Make entity match a simple query
+        });
+
+        it('should return a copy of results when immutableResult is true (default)', () => {
+            query = world.createQuery({ all: [CompA], immutableResult: true });
+            const results1 = query.get();
+            expect(results1).toContain(entity);
+            results1.pop(); // Modify the returned array
+            expect(query.get()).toContain(entity); // Internal cache should be unaffected
+        });
+
+        it('should return a direct reference to results when immutableResult is false', () => {
+            query = world.createQuery({ all: [CompA], immutableResult: false });
+            const results1 = query.get();
+            expect(results1).toContain(entity);
+            results1.pop(); // Modify the returned array
+            expect(query.get()).not.toContain(entity); // Internal cache should be affected
+        });
+
+        it('should default to immutableResult: true if option is not provided', () => {
+            query = world.createQuery({ all: [CompA] }); // immutableResult is undefined
+            const results1 = query.get();
+            expect(results1).toContain(entity);
+            results1.pop();
+            expect(query.get()).toContain(entity);
+        });
+    });
+
+    describe('edge cases', () => {
+        it('should match all non-destroyed entities if filters are empty', () => {
+            query = world.createQuery({});
+            const entityB = world.createEntity();
+            entity.add(ComponentA); // Add some components to make them different
+            entityB.add(ComponentB);
+
+            expect(query.get()).toContain(entity);
+            expect(query.get()).toContain(entityB);
+
+            entity.destroy();
+            expect(query.get()).not.toContain(entity);
+            expect(query.get()).toContain(entityB);
+        });
+
+        it('should return an empty array for an empty world', () => {
+            const emptyWorld = engine.createWorld();
+            query = emptyWorld.createQuery({all: [CompA]});
+            expect(query.get()).toEqual([]);
+        });
+        // TODO: Test candidate() method's boolean return value directly in various scenarios.
+    });
 });
