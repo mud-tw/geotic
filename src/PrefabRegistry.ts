@@ -29,23 +29,28 @@ interface PrefabMap {
 
 export class PrefabRegistry {
     private _prefabs: PrefabMap = {};
+    private _rawData: { [name: string]: PrefabData } = {};
     private _engine: Engine;
 
     constructor(engine: Engine) {
         this._engine = engine;
     }
 
+    /**
+     * 遞迴地反序列化預製件資料。
+     * 這個方法會處理繼承和組件的解析。
+     * @param data - 要反序列化的原始預製件資料。
+     * @returns 一個已解析的 Prefab 實例。
+     */
     deserialize(data: PrefabData): Prefab {
-        const registered = this.get(data.name);
-        if (registered) {
-            // Potentially update existing prefab or just return it
-            // For now, just return if already processed to avoid loops with inherit
-            return registered;
+        // 如果已經在反序列化過程中（為了處理循環依賴），則返回快取的實例。
+        if (this._prefabs[data.name]) {
+            return this._prefabs[data.name];
         }
 
         const prefab = new Prefab(data.name);
-        this._prefabs[data.name] = prefab; // Add to map early to handle circular dependencies in inherit (though direct circularity is an issue)
-
+        // 提早將預製件加入快取，以處理循環繼承。
+        this._prefabs[data.name] = prefab;
 
         let inheritNames: string[] = [];
         if (Array.isArray(data.inherit)) {
@@ -54,96 +59,88 @@ export class PrefabRegistry {
             inheritNames = [data.inherit];
         }
 
-        // Resolve parent prefabs. They might be strings (names) or already resolved Prefab instances.
-        // The Prefab class itself stores resolved Prefabs in its `inherit` array.
-        prefab.inherit = inheritNames.map((parentNameOrPrefab: string | Prefab) => {
-            if (typeof parentNameOrPrefab === 'string') {
-                const parentPrefab = this.get(parentNameOrPrefab);
-                if (!parentPrefab) {
-                    // If a parent prefab is not yet registered during this deserialize pass,
-                    // it might be registered later. Store the name for now, or try to deserialize it.
-                    // For simplicity, let's assume it should be registered or this is a forward declaration
-                    // that will be resolved when the parent is actually registered.
-                    // However, current Prefab.applyToEntity expects resolved Prefabs.
-                    // A more robust system might have a two-pass registration or deferred resolution.
-                    // For now, we try to deserialize it if not found.
-                    // This could lead to issues if there's a missing prefab that's never registered.
-                    console.warn(
-                        `Prefab "${data.name}" inherits from "${parentNameOrPrefab}" which was not found. Attempting to deserialize if it's a defined data structure, or this might fail if it's just a name of an unregistered prefab.`
-                    );
-                    // This part is tricky: if parentNameOrPrefab is a name of a prefab defined elsewhere in a larger data structure
-                    // being processed, we can't just call deserialize with a string.
-                    // The original code returned the string, which Prefab.ts isn't typed to handle.
-                    // For now, we return a placeholder Prefab, this is a known limitation.
-                    // A better approach: Prefab.inherit could be (string | Prefab)[] and resolved at applyToEntity time.
-                    // Or ensure all parent prefabs are registered first.
-                    // Given the original code structure, it seems to expect parents to be resolvable.
-                    const potentialParentData = this._engine._prefabs.getPrefabDataByName(parentNameOrPrefab); // Imaginary method
-                    if (potentialParentData) return this.deserialize(potentialParentData);
-
-                    console.error(`Critical: Prefab "${data.name}" cannot inherit from Prefab "${parentNameOrPrefab}" because it's not registered and no data found.`);
-                    // Returning a dummy Prefab to satisfy type, but this is problematic.
-                    return new Prefab(parentNameOrPrefab); // This dummy won't have components/inheritance
+        // 解析父預製件。
+        prefab.inherit = inheritNames.map((parentName: string) => {
+            // 檢查父預製件是否已在快取中。
+            let parentPrefab = this._prefabs[parentName];
+            if (!parentPrefab) {
+                // 如果不在快取中，從原始資料中尋找並遞迴地反序列化它。
+                const parentData = this._rawData[parentName];
+                if (parentData) {
+                    parentPrefab = this.deserialize(parentData);
                 }
-                return parentPrefab;
             }
-            return parentNameOrPrefab; // Already a Prefab instance
-        });
 
+            if (!parentPrefab) {
+                console.error(`嚴重錯誤：預製件 "${data.name}" 無法繼承自預製件 "${parentName}"，因為它從未被註冊。`);
+                // 返回一個虛設的預製件以滿足類型要求，但這是一個有問題的狀態。
+                return new Prefab(parentName);
+            }
+            return parentPrefab;
+        });
 
         const componentConfigs = data.components || [];
         componentConfigs.forEach((componentData: PrefabComponentDataItem) => {
             let componentName: string = 'unknown';
             let properties: Partial<ComponentProperties> | undefined;
             let overwrite: boolean | undefined;
-            let componentClass: ComponentClassWithMeta | undefined;
 
             if (typeof componentData === 'string') {
                 componentName = componentData;
-                const ckey = camelString(componentName);
-                // TODO: Accessing _engine._components is a bit of a reach, consider a getter in Engine
-                componentClass = this._engine._components.get(ckey) as ComponentClassWithMeta | undefined;
             } else if (typeof componentData === 'object' && componentData.type) {
                 componentName = componentData.type;
-                const ckey = camelString(componentName);
-                componentClass = this._engine._components.get(ckey) as ComponentClassWithMeta | undefined;
                 properties = componentData.properties;
                 overwrite = componentData.overwrite;
             }
+
+            const ckey = camelString(componentName);
+            // 使用引擎提供的公共方法來獲取組件類別，而不是直接訪問私有屬性。
+            const componentClass = this._engine.getComponentClass(ckey) as ComponentClassWithMeta | undefined;
 
             if (componentClass) {
                 prefab.addComponent(new PrefabComponent(componentClass, properties, overwrite));
             } else {
                 console.warn(
-                    `Unrecognized component reference "${componentName}" in prefab "${data.name}". Ensure the component is registered with the engine before this prefab.`,
+                    `在預製件 "${data.name}" 中發現無法識別的組件引用 "${componentName}"。請確保該組件已在引擎中註冊。`,
                     componentData
                 );
             }
         });
-
         return prefab;
     }
 
-    // Helper that might be needed for the above warning logic, or a way to access raw prefab data.
-    // This is a placeholder for a more robust way to handle inter-prefab dependencies.
-    public getPrefabDataByName(name: string): PrefabData | undefined {
-        // This assumes raw data is stored somewhere accessible by name if not yet deserialized.
-        // The current structure doesn't explicitly store raw data separately once registered.
-        // This is a conceptual method.
-        return undefined;
-    }
-
-
+    /**
+     * 註冊一個預製件的原始資料。
+     * 這不會立即反序列化，而是在首次被請求時進行（延遲加載）。
+     * @param data - 要註冊的預製件資料。
+     */
     register(data: PrefabData): void {
-        // Deserialize will get or create and then store it in _prefabs
-        const prefab = this.deserialize(data);
-        // If deserialize didn't throw and returned a prefab, it's now in the map.
-        // If it was already there, it might just return the existing one.
-        // We could add more logic here if updating existing prefabs is desired.
+        if (this._rawData[data.name]) {
+            console.warn(`預製件 "${data.name}" 已被註冊。將覆蓋其原始資料。`);
+        }
+        this._rawData[data.name] = data;
     }
 
+    /**
+     * 按名稱獲取一個已解析的預製件。
+     * 如果預製件尚未被解析，此方法將觸發其反序列化。
+     * @param name - 預製件的名稱。
+     * @returns 一個 Prefab 實例，如果找不到則返回 undefined。
+     */
     get(name: string): Prefab | undefined {
-        return this._prefabs[name];
+        // 如果已在快取中，直接返回。
+        if (this._prefabs[name]) {
+            return this._prefabs[name];
+        }
+
+        // 如果有原始資料，則進行反序列化。
+        const rawData = this._rawData[name];
+        if (rawData) {
+            return this.deserialize(rawData);
+        }
+
+        // 若無，則返回 undefined。
+        return undefined;
     }
 
     create(world: World, name: string, properties: Partial<ComponentProperties> = {}): Entity | undefined {
@@ -151,7 +148,7 @@ export class PrefabRegistry {
 
         if (!prefab) {
             console.warn(
-                `Could not instantiate prefab "${name}" since it is not registered.`
+                `無法實例化預製件 "${name}"，因為它未被註冊。`
             );
             return undefined;
         }
