@@ -101,12 +101,11 @@ export class PrefabRegistry {
             if (typeof componentData === 'string') {
                 componentName = componentData;
                 const ckey = camelString(componentName);
-                // TODO: Accessing _engine._components is a bit of a reach, consider a getter in Engine
-                componentClass = this._engine._components.get(ckey) as ComponentClassWithMeta | undefined;
+                componentClass = this._engine.getComponentClass(ckey) as ComponentClassWithMeta | undefined;
             } else if (typeof componentData === 'object' && componentData.type) {
                 componentName = componentData.type;
                 const ckey = camelString(componentName);
-                componentClass = this._engine._components.get(ckey) as ComponentClassWithMeta | undefined;
+                componentClass = this._engine.getComponentClass(ckey) as ComponentClassWithMeta | undefined;
                 properties = componentData.properties;
                 overwrite = componentData.overwrite;
             }

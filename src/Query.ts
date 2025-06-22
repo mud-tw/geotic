@@ -113,10 +113,10 @@ export class Query {
 
     refresh(): void {
         this._cache = [];
-        // Assuming _world._entities is a Map<string, Entity> or similar iterable
-        this._world._entities.forEach((entity: Entity) => {
+        // Use public getter for entities
+        for (const entity of this._world.getEntities()) {
             this.candidate(entity);
-        });
+        }
     }
 
     get(): Entity[] {
