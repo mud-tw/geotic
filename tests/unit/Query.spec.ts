@@ -1,6 +1,9 @@
 import { Engine, Component, World, Entity, Query, ComponentClass, ComponentClassWithCBit } from '../../src'; // Adjusted path
 // Removed unused import: import { bitIntersection } from '../../src/util/bit-util';
 
+// Placeholder type for QuerySubscription
+type QuerySubscription = { unsubscribe: () => void; closed: boolean };
+
 describe('Query', () => {
     let world: World;
     let entity: Entity;
@@ -319,8 +322,8 @@ describe('Query', () => {
         let onExitMock: jest.Mock;
 
         beforeEach(() => {
-            // ComponentA (CompA_Query) is already registered in the outer scope's beforeEach
-            queryAllA = world.createQuery({ all: [CompA_Query] });
+            // ComponentA (CompA) is already registered in the outer scope's beforeEach
+            queryAllA = world.createQuery({ all: [CompA] });
             entityX = world.createEntity('entityX');
             entityY = world.createEntity('entityY');
             onEnterMock = jest.fn();
