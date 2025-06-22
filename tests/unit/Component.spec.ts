@@ -159,7 +159,38 @@ describe('Component', () => {
         });
     });
 
-    describe('properties', () => {
+    describe('constructor and property initialization', () => {
+        // TODO: Test constructor with property overrides:
+        //   - Ensure properties passed to `new Component(props)` override defaults from `static properties`.
+        //   - Ensure properties *not* in `static properties` but passed in `props` are also set (current behavior).
+        it.todo('should correctly initialize properties from constructor arguments');
+    });
+
+    describe('getters', () => {
+        // TODO: Test `world` getter.
+        // TODO: Test `allowMultiple` getter.
+        // TODO: Test `keyProperty` getter.
+        it.todo('should correctly return values for getters (world, allowMultiple, keyProperty)');
+    });
+
+    describe('event handling (_onEvent, onEvent, on[EventName])', () => {
+        // TODO: Test event handling:
+        //    - `onEvent` is called.
+        //    - Specific `on[EventName]` (e.g., `onCustomEvent`) is called.
+        //    - Event data is correctly passed to handlers.
+        //    - Component methods like `evt.handle()` or `evt.prevent()` are callable (actual stop propagation is Entity responsibility).
+        it.todo('should handle events dispatched to the component');
+    });
+
+    describe('serialize', () => {
+        // TODO: Test `serialize()`:
+        //    - Returns an object with only keys from `static properties`.
+        //    - Values match current instance values.
+        //    - Returns a deep clone.
+        it.todo('should serialize the component based on static properties');
+    });
+
+    describe('properties deep cloning', () => { // Renamed from 'properties' to be more specific
         interface PropertyComponentProperties extends ComponentProperties {
             name: string;
             arr: (string | number | null | boolean)[];

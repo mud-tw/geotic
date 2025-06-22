@@ -86,6 +86,14 @@ describe('Entity Clone Integration Test', () => { // Renamed for clarity
                 ...entityJson,
                 id: null, // Nullify ID for comparison
             });
+
+            // TODO: Explicitly test deep cloning:
+            // Modify a nested property in a component of the *original* entity
+            // (e.g., entity.nestedComponent[nestedKeyA].obprop.arr.push(99))
+            // and assert that the *cloned* entity's corresponding property is *not* affected.
         });
+
+        // TODO: Test cloning an entity with no components.
+        // TODO: Test that a cloned entity is correctly picked up by relevant queries.
     });
 });

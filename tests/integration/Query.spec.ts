@@ -204,4 +204,10 @@ describe('Query Integration Test', () => { // Renamed for clarity
             });
         });
     });
+
+    // TODO: Consider adding an integration test with a more complex filter
+    // (e.g., using 'all' and 'none' in combination) to ensure dynamic updates
+    // (add/remove callbacks, get() results) work correctly in those scenarios.
+    // The core matching logic is unit-tested, but dynamic updates under complex filters
+    // could be an integration point.
 });

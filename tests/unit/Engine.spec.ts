@@ -128,7 +128,10 @@ describe('Engine', () => {
             expect(pos?.y).toBe(2); // y should remain from prefab default
         });
 
-        it('should handle prefab component properties correctly even if not overridden', () => {
+        // TODO: Add test case for structured property overrides, e.g., engine.createPrefabInstance(world, 'TestPrefabWithPos', { PosComponent: { x: 200 } });
+        // This depends on how Prefab.applyToEntity prioritizes flat vs structured overrides from the top-level call.
+
+        it('should handle prefab component properties correctly even if not overridden, and ignore irrelevant overrides', () => {
             const entity = engine.createPrefabInstance(world, 'TestPrefabWithPos', { z: 300 })!; // z is not in PosComponent
             const pos = entity.get(PosComponent);
             expect(pos?.x).toBe(1); // Should take from prefab
