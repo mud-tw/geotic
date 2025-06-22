@@ -120,6 +120,68 @@ describe('World', () => {
     // Add more tests for serialize, deserialize, cloneEntity, createPrefab if time permits
     // For now, focusing on core methods.
 
+    // TODO: Test for createId - e.g., uniqueness, format if important.
+    // TODO: Test for getEntities - e.g., returns all entities, empty iterator for new world.
+    // TODO: Test for destroyEntities - e.g., on empty world, ensure _entities map is cleared.
+
+    describe('createPrefab', () => {
+        // TODO: Test world.createPrefab()
+        //    - Basic prefab creation
+        //    - Prefab creation with property overrides
+        //    - Attempting to create a non-existent prefab
+        class TestPrefabComp extends Component { static properties = { val: 0 }; val!: number; }
+        beforeEach(() => {
+            engine.registerComponent(TestPrefabComp as ComponentClass);
+            engine.registerPrefab({ name: 'MyTestPrefab', components: [{type: 'TestPrefabComp', properties: {val: 10}}]});
+        });
+
+        it('should create an entity from a registered prefab', () => {
+            const entity = world.createPrefab('MyTestPrefab');
+            expect(entity).toBeInstanceOf(Entity);
+            expect(entity?.has(TestPrefabComp)).toBe(true);
+            expect(entity?.get(TestPrefabComp)?.val).toBe(10);
+        });
+
+        it('should override prefab properties when creating from prefab', () => {
+            const entity = world.createPrefab('MyTestPrefab', { testPrefabComp: { val: 20 } });
+            expect(entity?.get(TestPrefabComp)?.val).toBe(20);
+        });
+
+        it('should return undefined for a non-existent prefab', () => {
+            const entity = world.createPrefab('NonExistentPrefab');
+            expect(entity).toBeUndefined();
+        });
+    });
+
+    describe('serialize', () => {
+        // TODO: Test world.serialize()
+        //    - Empty world
+        //    - World with multiple entities and diverse components (single, multi-array, multi-keyed)
+        //    - Serializing a specific subset of entities
+        it.todo('should serialize world state');
+    });
+
+    describe('deserialize', () => {
+        // TODO: Test world.deserialize()
+        //    - Empty world / empty data
+        //    - Deserializing into an empty world
+        //    - Deserializing data that merges/overwrites
+        //    - Deserializing complex entity structures
+        //    - Robustness against malformed data (e.g., unknown component types - should warn)
+        //    - Ensure _createOrGetEntityById and _deserializeEntity logic is covered
+        it.todo('should deserialize world state');
+    });
+
+    describe('cloneEntity', () => {
+        // TODO: Test world.cloneEntity()
+        //    - Cloned entity has new ID
+        //    - Components and properties are deeply cloned
+        //    - Original entity unaffected
+        //    - Cloning with various component types
+        it.todo('should clone an entity');
+    });
+
+
     describe('entityCompositionChanged (formerly _candidate)', () => {
         class TrackableComponent extends Component {}
         const TrackableQuery = TrackableComponent as unknown as ComponentClassWithCBit;

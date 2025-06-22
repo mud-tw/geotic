@@ -194,4 +194,27 @@ describe('Prefab System (via World.createPrefab)', () => { // Renamed describe f
             });
         });
     });
+
+    // TODO: Add tests for prefab inheritance:
+    //   - Simple inheritance (one parent) and property/component overriding.
+    //   - Multiple inheritance and order of application / conflict resolution if any.
+    //   - Overriding components from parent with `overwrite: true/false` in child's PrefabComponent.
+    describe('prefab with inheritance', () => {
+        it.todo('should correctly apply components and properties from parent prefabs');
+        it.todo('should allow child prefabs to override parent components and properties');
+    });
+
+    // TODO: Add tests for "flat" property overrides in `world.createPrefab(name, { flatProp: value })`
+    //   Currently tests use structured overrides: `world.createPrefab(name, { componentKey: { prop: value } })`
+    //   The Prefab.applyToEntity method has logic for both.
+    describe('prefab with flat property overrides', () => {
+        it.todo('should allow flat property overrides for single-instance components');
+    });
+
+    // TODO: Add tests for error handling and edge cases:
+    //   - Instantiating a prefab that refers to an unregistered component type.
+    //   - Instantiating a prefab with malformed data.
+    describe('prefab error handling and edge cases', () => {
+        it.todo('should handle instantiation of prefabs with missing component types');
+    });
 });

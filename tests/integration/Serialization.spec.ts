@@ -189,5 +189,25 @@ describe('Serialization Integration Test', () => { // Renamed for clarity
             expect(arrayComps.find(c => c.name === arrayName1Val)?.hello).toBe(arrayHello1Val);
             expect(arrayComps.find(c => c.name === arrayName2Val)?.hello).toBe(arrayHello2Val);
         });
+
+        // TODO: Test deserializing an empty entities array: world.deserialize({ entities: [] });
+        // TODO: Test deserializing data for an entity ID that already exists in the world.
+        //       - What is the expected behavior? Overwrite components? Merge?
+        // TODO: Test deserializing data containing an unknown component type (should warn and skip that component).
+        // TODO: Test that queries are correctly updated after a world deserialization.
+        //       - e.g., create a query, deserialize, then check query.get().
+    });
+
+    describe('serializing an empty world', () => {
+        it('should return { entities: [] }', () => {
+            const emptyWorld = engine.createWorld();
+            expect(emptyWorld.serialize()).toEqual({ entities: [] });
+        });
+    });
+
+    describe('entity.serialize() integration', () => {
+        // TODO: Add a direct test for entity.serialize() to ensure it's working as expected
+        //       within the context of registered components. (Unit test might also be appropriate).
+        it.todo('should correctly serialize an individual entity');
     });
 });

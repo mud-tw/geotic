@@ -53,5 +53,15 @@ describe('Entity Events Integration Test', () => { // Renamed for clarity
             expect(receivedEvent.data).toBe(eventData);
             expect(receivedEvent.entity).toBe(entity); // EntityEvent should also have a reference to the entity
         });
+
+        // TODO: Test that onEvent (generic handler) is called, and its calling order relative to specific handlers.
+        // TODO: Test event propagation:
+        //    - Event dispatch to multiple components on the same entity.
+        //    - evt.handle() in one component prevents propagation to subsequent components.
+        //    - evt.prevent() in one component prevents propagation.
+        // TODO: Test firing an event when no component handles it (should be graceful).
+        // TODO: Test that specific handlers are only called for their respective events.
+        // TODO: Test event dispatch to array components (all instances should receive).
+        // TODO: Test event dispatch to keyed components (all instances should receive).
     });
 });

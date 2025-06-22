@@ -2,7 +2,7 @@ import { Engine, World, Entity, Component, ComponentProperties, ComponentClass }
 // Adjusted path for components used in existing tests
 import { EmptyComponent, NestedComponent as OldNestedComponent, ArrayComponent as OldArrayComponent } from '../data/components';
 // Import new components for typing tests
-import { PositionComponent, VelocityComponent, TagComponent, DataComponent } from '../data/components';
+import { PositionComponent, VelocityComponent, TagComponent, DataComponent, SimpleDataForTest } from '../data/components';
 
 
 // Use global chance instance if available (from jest.setup.ts)
@@ -35,6 +35,7 @@ describe('Entity', () => {
         engine.registerComponent(VelocityComponent);
         engine.registerComponent(TagComponent);
         engine.registerComponent(DataComponent);
+        engine.registerComponent(SimpleDataForTest); // Register the new component
 
         world = engine.createWorld();
     });
@@ -311,6 +312,34 @@ describe('Entity', () => {
         });
     });
 
+    // TODO: Test _cbits updates correctly on add/remove of components.
+    // TODO: Test _candidacy() is called on add/remove.
+    // TODO: Test add() behavior when adding a single-instance component that already exists (should replace).
+    // TODO: Test remove() with a component instance not actually on the entity (should be graceful).
+
+    describe('serialize', () => {
+        // TODO: Test entity.serialize()
+        //    - Correct ID
+        //    - Serialization of single, array, and keyed components
+        //    - Ensure only properties from static `properties` are serialized.
+        it.todo('should serialize the entity and its components');
+    });
+
+    describe('clone', () => {
+        // TODO: Test entity.clone() correctly calls world.cloneEntity(this)
+        it.todo('should delegate cloning to the world');
+    });
+
+    describe('fireEvent', () => {
+        // TODO: Test entity.fireEvent()
+        //    - Dispatch to single, array, and keyed components
+        //    - Event data reception
+        //    - evt.handle() / evt.prevent() stopping propagation
+        //    - on[EventName] handlers being called
+        it.todo('should dispatch events to components and respect handling/prevention');
+    });
+
+
     // New describe block for Entity.add typing tests
     describe('add - with strong property typing (compile-time tests)', () => {
         let entity: Entity;
@@ -391,36 +420,93 @@ describe('Entity', () => {
         // Uncomment them locally after Entity.add is typed to verify.
 
         it('should FAIL to compile if PositionComponent is given wrong property types (manual check)', () => {
-            // entity.add(PositionComponent, { x: "10" }); // EXPECTED COMPILE ERROR: Type 'string' is not assignable to type 'number | undefined'.
-            // entity.add(PositionComponent, { x: 10, y: "20" }); // EXPECTED COMPILE ERROR: Type 'string' is not assignable to type 'number | undefined'.
+            // @ts-expect-error TS2345
+            entity.add(PositionComponent, { x: "10" }); // EXPECTED COMPILE ERROR: Type 'string' is not assignable to type 'number | undefined'.
+            // @ts-expect-error TS2345
+            entity.add(PositionComponent, { x: 10, y: "20" }); // EXPECTED COMPILE ERROR: Type 'string' is not assignable to type 'number | undefined'.
             expect(true).toBe(true); // Placeholder for test runner
         });
 
         it('should FAIL to compile if PositionComponent is given non-existent properties (manual check)', () => {
-            // entity.add(PositionComponent, { z: 30 }); // EXPECTED COMPILE ERROR: Object literal may only specify known properties, and 'z' does not exist in type 'Partial<PositionComponentProps>'.
-            // entity.add(PositionComponent, { x: 10, nonExistent: 100 }); // EXPECTED COMPILE ERROR: Object literal may only specify known properties...
+            // @ts-expect-error TS2345 (or TS2322 if props are exact)
+            entity.add(PositionComponent, { z: 30 }); // EXPECTED COMPILE ERROR: Object literal may only specify known properties, and 'z' does not exist in type 'Partial<PositionComponentProps>'.
+            // @ts-expect-error TS2345
+            entity.add(PositionComponent, { x: 10, nonExistent: 100 }); // EXPECTED COMPILE ERROR: Object literal may only specify known properties...
             expect(true).toBe(true); // Placeholder for test runner
         });
 
         it('should FAIL to compile if VelocityComponent is missing required properties (manual check)', () => {
-            // entity.add(VelocityComponent, { dx: 1 }); // EXPECTED COMPILE ERROR: Property 'dy' is missing in type '{ dx: number; }' but required in type 'VelocityComponentProps'.
-            // entity.add(VelocityComponent, {}); // EXPECTED COMPILE ERROR: Property 'dx' is missing... Property 'dy' is missing...
+            // @ts-expect-error TS2741
+            entity.add(VelocityComponent, { dx: 1 }); // EXPECTED COMPILE ERROR: Property 'dy' is missing in type '{ dx: number; }' but required in type 'VelocityComponentProps'.
+            // @ts-expect-error TS2739
+            entity.add(VelocityComponent, {}); // EXPECTED COMPILE ERROR: Property 'dx' is missing... Property 'dy' is missing...
             expect(true).toBe(true); // Placeholder for test runner
         });
 
         it('should FAIL to compile if VelocityComponent is given wrong property types (manual check)', () => {
-            // entity.add(VelocityComponent, { dx: "1", dy: 2 }); // EXPECTED COMPILE ERROR: Type 'string' is not assignable to type 'number'.
+            // @ts-expect-error TS2345
+            entity.add(VelocityComponent, { dx: "1", dy: 2 }); // EXPECTED COMPILE ERROR: Type 'string' is not assignable to type 'number'.
             expect(true).toBe(true); // Placeholder for test runner
         });
 
         it('should FAIL to compile if TagComponent is given wrong property types (manual check)', () => {
-            // entity.add(TagComponent, { tag: 123 }); // EXPECTED COMPILE ERROR: Type 'number' is not assignable to type 'string | undefined'.
+            // @ts-expect-error TS2345
+            entity.add(TagComponent, { tag: 123 }); // EXPECTED COMPILE ERROR: Type 'number' is not assignable to type 'string | undefined'.
             expect(true).toBe(true); // Placeholder for test runner
         });
 
         it('should FAIL to compile if DataComponent is given wrong property types for value (manual check)', () => {
-            // entity.add(DataComponent, { value: 123 }); // EXPECTED COMPILE ERROR: Type 'number' is not assignable to type 'string | null | undefined'.
+            // @ts-expect-error TS2345
+            entity.add(DataComponent, { value: 123 }); // EXPECTED COMPILE ERROR: Type 'number' is not assignable to type 'string | null | undefined'.
             expect(true).toBe(true); // Placeholder for test runner
+        });
+
+        describe('for components using base constructor (properties inferred from static properties)', () => {
+            it('should allow adding SimpleDataForTest with correct optional properties', () => {
+                entity.add(SimpleDataForTest, { value: 100, name: "test" });
+                const sdt1 = entity.simpleDataForTest as SimpleDataForTest;
+                expect(sdt1.value).toBe(100);
+                expect(sdt1.name).toBe("test");
+                expect(sdt1.isActive).toBe(true); // default
+
+                world.destroyEntity(entity.id); entity = world.createEntity();
+                entity.add(SimpleDataForTest, { isActive: false });
+                const sdt2 = entity.simpleDataForTest as SimpleDataForTest;
+                expect(sdt2.value).toBe(0); // default
+                expect(sdt2.name).toBe("default"); // default
+                expect(sdt2.isActive).toBe(false);
+
+                world.destroyEntity(entity.id); entity = world.createEntity();
+                entity.add(SimpleDataForTest, {});
+                const sdt3 = entity.simpleDataForTest as SimpleDataForTest;
+                expect(sdt3.value).toBe(0);
+                expect(sdt3.name).toBe("default");
+                expect(sdt3.isActive).toBe(true);
+
+
+                world.destroyEntity(entity.id); entity = world.createEntity();
+                entity.add(SimpleDataForTest); // No properties
+                const sdt4 = entity.simpleDataForTest as SimpleDataForTest;
+                expect(sdt4.value).toBe(0);
+                expect(sdt4.name).toBe("default");
+                expect(sdt4.isActive).toBe(true);
+            });
+
+            it('should FAIL to compile if SimpleDataForTest is given wrong property types (manual check)', () => {
+                // @ts-expect-error TS2345
+                entity.add(SimpleDataForTest, { value: "100" }); // EXPECTED COMPILE ERROR: Type 'string' not 'number'.
+                // @ts-expect-error TS2345
+                entity.add(SimpleDataForTest, { name: 123 });    // EXPECTED COMPILE ERROR: Type 'number' not 'string'.
+                // @ts-expect-error TS2345
+                entity.add(SimpleDataForTest, { isActive: "true" });// EXPECTED COMPILE ERROR: Type 'string' not 'boolean'.
+                expect(true).toBe(true); // Placeholder
+            });
+
+            it('should FAIL to compile if SimpleDataForTest is given non-existent properties (manual check)', () => {
+                // @ts-expect-error TS2345
+                entity.add(SimpleDataForTest, { unknownProp: "test" }); // EXPECTED COMPILE ERROR: 'unknownProp' does not exist.
+                expect(true).toBe(true); // Placeholder
+            });
         });
     });
 

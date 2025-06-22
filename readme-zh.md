@@ -93,10 +93,9 @@ const loop = (dt: number): void => {
     // 遍歷結果集以更新查詢中所有實體的位置。
     // 查詢將始終返回一個包含匹配實體的最新陣列。
     kinematics.get().forEach((entity: Entity) => {
-        // 假設 Position 和 Velocity 組件直接將屬性添加到實體上。
-        // 為了型別安全，你可能需要使用 entity.get(Position).x 或將實體轉換為擴充型別。
-        const pos = entity.get(Position); // 更安全的存取範例
-        const vel = entity.get(Velocity); // 更安全的存取範例
+        // 建議使用 entity.get(ComponentType) 以獲得型別安全
+        const pos = entity.get(Position);
+        const vel = entity.get(Velocity);
         if (pos && vel) {
             pos.x += vel.x * dt;
             pos.y += vel.y * dt;
@@ -200,9 +199,9 @@ World properties and methods:
 | method | description |
 |:-------|:------------|
 | **createEntity(id?: string): Entity** | Create an `Entity`. Optionally provide an ID. |
-| **getEntity(id: string): Entity** | Create an `Entity`. Optionally provide an ID. |
+| **getEntity(id: string): Entity | undefined** | Get an `Entity` by ID. Returns `undefined` if not found. |
 | **getEntities(): IterableIterator<Entity>** | Get _all_ entities in this world. |
-| **createPrefab(name: string, properties: Record<string, any> = {}): Entity** | Create an entity from the registered prefab. The `properties` object can be used to override default component values, including deeply nested properties (see prefab examples). |
+| **createPrefab(name: string, properties: Record<string, any> = {}): Entity | undefined** | Create an entity from the registered prefab. The `properties` object can be used to override default component values, including deeply nested properties (see prefab examples). Returns `undefined` if prefab not found. |
 | **destroyEntity(entityOrId: Entity or String)** | Destroys an entity. Functionally equivalent to `entity.destroy()`. |
 | **destroyEntities()** | Destroys all entities in this world instance. |
 | **serialize(entities?: Iterable<Entity> or Map<string, Entity>): SerializedWorldData** | Serialize and return all entity data into an object. Optionally specify a list of entities to serialize. |
@@ -264,15 +263,22 @@ zombie.add(Velocity, { x: 0, y: 0, z: 1 });
 zombie.add(Health, { value: 200 });
 zombie.add(Enemy);
 
-// Assuming direct property access for components; type safety may require entity.get(Name)
-zombie.name.value = 'George';
-zombie.velocity.x += 12;
+// 建議使用 entity.get(ComponentType) 以獲得型別安全
+const nameComponent = zombie.get(Name);
+if (nameComponent) {
+    nameComponent.value = 'George';
+}
+
+const velocityComponent = zombie.get(Velocity);
+if (velocityComponent) {
+    velocityComponent.x += 12;
+}
 
 // Firing an event with specific data
 zombie.fireEvent('hit', { damage: 12 });
 
-const zombieHealth = zombie.health;
-if (zombieHealth && zombieHealth.value <= 0) {
+const healthComponent = zombie.get(Health);
+if (healthComponent && healthComponent.value <= 0) {
     zombie.destroy();
 }
 ```
@@ -283,11 +289,11 @@ Entity properties and methods:
 -   **world: World**: The Geotic World instance this entity belongs to.
 -   **isDestroyed: boolean**: Returns `true` if this entity has been destroyed.
 -   **components: Record<string, Component | Component[] | Record<string, Component>>**: All component instances attached to this entity. Access components directly (e.g., `entity.position`). For components with `allowMultiple=true`, access them as an array (e.g., `entity.impulses[0]`) or as an object if `keyProperty` is set (e.g., `entity.equipmentSlot.head`). (Note: for type safety, prefer `entity.get(ComponentType)`).
--   **add<T extends Component>(ComponentClazz: typeof T, props?: Partial<InstanceType<typeof T>['__props__']>)**: Create and add the registered component to the entity.
--   **has(ComponentClazz: typeof Component): boolean**: Returns `true` if the entity has the component.
--   **get<T extends Component>(ComponentClazz: typeof T): InstanceType<typeof T> | undefined**: Retrieves a single instance component. (Actual method signature might vary, this is a common pattern).
--   **getAll<T extends Component>(ComponentClazz: typeof T): InstanceType<typeof T>[] | undefined**: Retrieves all instances for a multi-component. (Actual method signature might vary).
--   **getByKey<T extends Component>(ComponentClazz: typeof T, key: string): InstanceType<typeof T> | undefined**: Retrieves a keyed multi-component. (Actual method signature might vary).
+-   **add<T extends Component>(ComponentClazz: typeof T, props?: {/* component-specific properties */})**: Create and add the registered component to the entity. TypeScript will provide type checking for `props` based on the component's definition (its constructor or static `properties`).
+-   **has<T extends Component>(ComponentClazz: typeof T): boolean**: Returns `true` if the entity has the component.
+-   **get<T extends Component>(ComponentClazz: typeof T): InstanceType<typeof T> | undefined**: Retrieves a single instance component.
+-   **getAll<T extends Component>(ComponentClazz: typeof T): InstanceType<typeof T>[] | undefined**: (構想中) 擷取多組件的所有實例。 (Note: This method is listed for concept, check API for current availability)
+-   **getByKey<T extends Component>(ComponentClazz: typeof T, key: string): InstanceType<typeof T> | undefined**: (構想中) 擷取一個鍵控的多組件實例。 (Note: This method is listed for concept, check API for current availability)
 -   **owns(component: Component): boolean**: Returns `true` if the specified component instance belongs to this entity.
 -   **remove(componentOrClazz: Component | typeof Component)**: Remove a component instance or all components of a class from the entity and destroy it/them.
 -   **destroy()**: Destroy the entity and all of its components.
@@ -409,19 +415,23 @@ player.add(Impulse, { x: 5, y: 6 });
 
 // ...
 
-// Access the array of Impulse components (type assertion for clarity)
-const impulses = player.get(Impulse) as Impulse[]; // Or a more specific accessor if available
-if (impulses) {
-    // Returns the Impulse at position `2`
-    console.log(impulses[2]);
+// 對於 allowMultiple = true 且沒有 keyProperty 的組件，它們作為陣列儲存在實體上。
+// 直接存取該陣列 (通常以組件的 ckey 命名，例如 'impulse')。
+// player.get(Impulse) 設計用於獲取單一組件實例，對於陣列情況將返回 undefined。
+const impulses = player.impulse as Impulse[]; // 假設 'impulse' 是 Impulse 組件的 ckey
+if (impulses && impulses.length > 0) {
+    // Returns the Impulse at position `2` (if it exists)
+    if (impulses.length > 2) {
+        console.log(impulses[2]);
+    }
     
     impulses.forEach((impulse: Impulse) => {
         console.log(impulse.x, impulse.y);
     });
     // Remove and destroy the first impulse
-    impulses[0].destroy();
+    impulses[0].destroy(); // 這會從實體中移除該組件實例並更新陣列
 }
-// Returns `true` if the entity has any `Impulse` component
+// player.has(Impulse) 仍會正確返回 true (如果至少有一個 Impulse 組件)
 console.log(player.has(Impulse));
 
 
@@ -461,13 +471,17 @@ player.add(EquipmentSlot, { name: 'head', itemId: helmet.id });
 
 // ...
 
-// Since `EquipmentSlot` had `keyProperty='name'`, access them via the key
-// (Type assertion or specific getter needed for type safety)
-const headSlot = player.get(EquipmentSlot, 'head') as EquipmentSlot; 
-const rightHandSlot = player.get(EquipmentSlot, 'rightHand') as EquipmentSlot;
+// 對於具有 keyProperty 的 allowMultiple = true 組件，它們作為物件儲存在實體上。
+// 直接透過 ckey 和指定的鍵值存取。
+// player.get(EquipmentSlot) 本身不適用於按鍵獲取，需要 getByKey 或直接存取。
+// const headSlot = player.getByKey(EquipmentSlot, 'head'); // 理想情況，若實作 getByKey
+// 目前，直接存取:
+const equipmentSlotMap = player.equipmentSlot as Record<string, EquipmentSlot>; // 假設 'equipmentSlot' 是 ckey
+const headSlot = equipmentSlotMap ? equipmentSlotMap['head'] : undefined;
+const rightHandSlot = equipmentSlotMap ? equipmentSlotMap['rightHand'] : undefined;
 
-if (headSlot) console.log(headSlot.name);
-if (rightHandSlot) console.log(rightHandSlot.name);
+if (headSlot) console.log(headSlot.name); // "head"
+if (rightHandSlot) console.log(rightHandSlot.name); // "rightHand"
 
 
 // Example: Clearing an item (assuming direct property access for example, use setter for safety)

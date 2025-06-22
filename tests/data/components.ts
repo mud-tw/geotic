@@ -131,3 +131,18 @@ export class DataComponent extends Component {
         this.value = props?.value === undefined ? defaultProps.value : props.value;
     }
 }
+
+// Component for testing T1.1 (Entity.add strong typing)
+// Relies on base Component constructor, so its properties for `add` should
+// be inferred from `static properties`.
+export class SimpleDataForTest extends Component {
+    static properties = {
+        value: 0,
+        name: "default",
+        isActive: true
+    };
+    value!: number;
+    name!: string;
+    isActive!: boolean;
+    // No explicit constructor
+}
