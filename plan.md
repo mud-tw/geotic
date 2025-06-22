@@ -110,9 +110,9 @@ Geotic 是一個使用 TypeScript 編寫的 ECS 函式庫。其核心架構包�
 以下是根據上述改良建議制定的初步 TODO 子任務列表。在實施前，每個任務都應進一步細化。
 
 ### 3.1. 型別安全與開發者體驗
-*   [ ] **T1.1**: 研究並實作 `Entity.add` 的強型別 `properties`。
-*   [ ] **T1.2**: 將 `Entity.get` 和 `Entity.has` 方法改為泛型。
-*   [ ] **T1.3**: 檢閱並強化 `tsconfig.json` 中的嚴格編譯選項，修正因此產生的型別錯誤。
+*   [x] **T1.1**: 研究並實作 `Entity.add` 的強型別 `properties`。(已增強 `Entity.add` 以從靜態 `properties` 或建構函式推斷型別)
+*   [x] **T1.2**: 將 `Entity.get` 和 `Entity.has` 方法改為泛型。(已確認方法已為泛型)
+*   [x] **T1.3**: 檢閱並強化 `tsconfig.json` 中的嚴格編譯選項，修正因此產生的型別錯誤。(已確認 `strict: true` 已啟用)
 
 ### 3.2. 封裝與 API 設計
 *   [ ] **T2.1**: 識別 `World` 和 `Entity` 中對 `Engine` 和 `World` 內部成員的直接存取點。

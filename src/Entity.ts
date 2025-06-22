@@ -4,8 +4,22 @@ import { addBit, hasBit, subtractBit } from './util/bit-util';
 import type { World } from './World';
 import type { ComponentProperties } from './Component'; // Assuming Component.ts exports this
 
-// Define a type for the component class (constructor)
-type ComponentClass<T extends Component = Component> = new (properties?: any) => T;
+import { Component, ComponentProperties } from './Component'; // Ensure ComponentProperties is imported
+import { EntityEvent } from './EntityEvent';
+import { addBit, hasBit, subtractBit } from './util/bit-util';
+import type { World } from './World';
+// ComponentProperties already imported from ./Component
+
+// Define a type for any component class constructor
+type AnyComponentConstructor<T extends Component = Component> = new (...args: any[]) => T;
+
+// Helper type to infer the properties for Entity.add
+// Prioritizes static 'properties' field if it's specific, otherwise uses the first constructor parameter.
+type AddProperties<C extends AnyComponentConstructor> =
+    C extends { properties: infer P } // If the class C has a static 'properties' field
+    ? (P extends ComponentProperties ? P : ConstructorParameters<C>[0]) // Use static P if it's valid, else constructor
+    : ConstructorParameters<C>[0]; // Otherwise, use the type of the first constructor parameter
+
 
 // Type for the components property on an Entity
 // It can hold single components, arrays of components, or maps of components (keyed by a property)
@@ -143,8 +157,8 @@ export class Entity {
     }
 
     add<T extends Component>(
-        clazz: ComponentClass<T>,
-        properties?: Partial<ConstructorParameters<typeof clazz>[0]>
+        clazz: AnyComponentConstructor<T>,
+        properties?: Partial<AddProperties<typeof clazz>>
     ): void {
         const component = new clazz(properties) as T & { _ckey: string, _cbit: bigint, keyProperty: string | null, allowMultiple: boolean, _onAttached: (entity: Entity) => void };
 
@@ -162,12 +176,12 @@ export class Entity {
         this._candidacy();
     }
 
-    has<T extends Component>(componentClass: ComponentClass<T>): boolean {
+    has<T extends Component>(componentClass: AnyComponentConstructor<T>): boolean {
         // Ensure _cbit is accessible; it's set on the prototype during component registration.
         return hasBit(this._cbits, (componentClass.prototype as any)._cbit);
     }
 
-    get<T extends Component>(componentClass: ComponentClass<T>): T | undefined {
+    get<T extends Component>(componentClass: AnyComponentConstructor<T>): T | undefined {
         // _ckey is set on the prototype during component registration (see ComponentRegistry)
         const componentKey = (componentClass.prototype as any)._ckey;
         if (!componentKey) {
