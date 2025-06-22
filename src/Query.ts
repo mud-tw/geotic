@@ -1,7 +1,7 @@
 import { addBit, bitIntersection } from './util/bit-util';
-import type { World } from './World';
-import type { Entity } from './Entity';
-import type { Component } from './Component';
+import { World } from './World';
+import { Entity } from './Entity';
+import { Component } from './Component';
 
 /**
  * Type alias for a Component class constructor that is guaranteed to have `_cbit`
@@ -9,7 +9,7 @@ import type { Component } from './Component';
  */
 export type ComponentClassWithCBit = (new (...args: any[]) => Component) & {
     prototype: { _cbit: bigint };
-};
+}
 
 /**
  * Defines the structure for query filters, specifying which components entities
@@ -281,10 +281,7 @@ export class Query {
     // private _notifyObserversOnExit(entity: Entity): void {
     //    this._notifyObservers(entity, 'onExit');
     // }
-
     // candidate() method will be updated next to use _notifyObservers
-    }
-
 
     /**
      * Checks if a given entity is currently part of this query's result set (i.e., is in the cache).
