@@ -14,8 +14,18 @@ export class Engine {
         this._components.register(clazz);
     }
 
+    // Public method to get a component class by name
+    public getComponentClass(name: string): ComponentClass | undefined {
+        return this._components.get(name);
+    }
+
     registerPrefab(data: PrefabData): void {
         this._prefabs.register(data);
+    }
+
+    // Public method to create a prefab instance
+    public createPrefabInstance(world: World, name: string, properties: Partial<import('./Component').ComponentProperties> = {}): Entity | undefined {
+        return this._prefabs.create(world, name, properties);
     }
 
     createWorld(): World {
@@ -26,3 +36,10 @@ export class Engine {
         world.destroy();
     }
 }
+// Need to import Entity for the return type of createPrefabInstance
+import type { Entity } from './Entity';
+// ComponentProperties is also used, ensure it's properly typed or imported if needed by Partial
+// It's already imported via `import type { Component } from './Component';` if ComponentProperties is from there.
+// Let's be explicit for ComponentProperties if it's from './Component'
+// import type { ComponentProperties } from './Component';
+// Actually, createPrefabInstance uses Partial<import('./Component').ComponentProperties> which is fine.

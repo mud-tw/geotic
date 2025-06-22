@@ -138,12 +138,14 @@ export class Entity {
 
     _candidacy(): void {
         if (this._qeligible) {
-            this.world._candidate(this);
+            this.world.entityCompositionChanged(this);
         }
     }
 
-    add<T extends Component>(clazz: ComponentClass<T>, properties?: any): void {
-        // TODO: Fix 'any' for properties, should be Partial<ConstructorParameters<typeof clazz>[0]> or similar
+    add<T extends Component>(
+        clazz: ComponentClass<T>,
+        properties?: Partial<ConstructorParameters<typeof clazz>[0]>
+    ): void {
         const component = new clazz(properties) as T & { _ckey: string, _cbit: bigint, keyProperty: string | null, allowMultiple: boolean, _onAttached: (entity: Entity) => void };
 
         if (component.keyProperty) {
@@ -160,10 +162,39 @@ export class Entity {
         this._candidacy();
     }
 
-    has<T extends Component>(clazz: ComponentClass<T> | (Function & { prototype: { _cbit: bigint } })): boolean {
-        // The `Function & { prototype: ... }` is a bit of a hack to handle un-migrated JS classes that will have .prototype
-        // but might not be true ComponentClass<T> yet.
-        return hasBit(this._cbits, (clazz.prototype as any)._cbit);
+    has<T extends Component>(componentClass: ComponentClass<T>): boolean {
+        // Ensure _cbit is accessible; it's set on the prototype during component registration.
+        return hasBit(this._cbits, (componentClass.prototype as any)._cbit);
+    }
+
+    get<T extends Component>(componentClass: ComponentClass<T>): T | undefined {
+        // _ckey is set on the prototype during component registration (see ComponentRegistry)
+        const componentKey = (componentClass.prototype as any)._ckey;
+        if (!componentKey) {
+            // This case should ideally not happen if the component was registered.
+            // Consider throwing an error or returning undefined.
+            // console.warn(`Component ${componentClass.name} does not have a _ckey.`);
+            return undefined;
+        }
+
+        const componentInstance = this.components[componentKey];
+
+        // Handle cases where componentInstance might be an array or map for allowMultiple/keyProperty
+        // For a simple .get(ComponentClass), we expect a single instance or undefined.
+        // If allowMultiple is true for this component type, this basic .get might not be appropriate,
+        // or it should return the first one, or an array.
+        // For now, assume .get is for single components.
+        // A more robust .get would check componentClass.allowMultiple
+        if (componentInstance instanceof componentClass) {
+            return componentInstance as T;
+        }
+        // If allowMultiple is true, componentInstance would be an array.
+        // If keyProperty is set, componentInstance would be an object.
+        // This basic get does not handle those cases; users should use direct access (entity.myComponentsArray)
+        // or a more specific getter like getComponents<T>() for those.
+        // For the purpose of this task (generic get for a single component type), this is a starting point.
+
+        return undefined;
     }
 
     remove(component: Component & { _ckey: string, _cbit: bigint, _onDestroyed: () => void }): void {
@@ -223,11 +254,11 @@ export class Entity {
     
         // 5. 通知查詢系統此實體的組件構成已改變 (現在是空的)
         // 這會讓查詢系統更新其快取的結果集
-        this._candidacy();
+        this.world.entityCompositionChanged(this); // Changed from this._candidacy() to direct call for clarity during destroy
     
         // 6. 通知世界 (World) 此實體已被銷毀
         // World 會將此實體從其活躍實體列表中移除
-        this.world._destroyed(this.id);
+        this.world.entityWasDestroyed(this.id);
     
         // 7. 清空實體的 components 映射
         this.components = {};
