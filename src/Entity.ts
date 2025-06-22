@@ -413,12 +413,14 @@ export class Entity {
 
         // Notify queries that this entity (now empty of components) might no longer match.
         // This is important for queries to update their caches.
+        this.isDestroyed = true; // Set this flag first
+
+        // Notify queries that this entity (now empty of components and marked as destroyed) might no longer match.
+        // This is important for queries to update their caches.
         this.world.entityCompositionChanged(this);
     
         // Notify the World that this entity is being removed from active existence.
         this.world.entityWasDestroyed(this.id);
-    
-        this.isDestroyed = true;
     }
 
     /**
