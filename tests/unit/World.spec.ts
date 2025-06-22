@@ -134,28 +134,28 @@ describe('World', () => {
 
         it('should update query results when an entity gains a relevant component', () => {
             // Initially, entity should not be in the query
-            expect(query.entities).not.toContain(entity);
+            expect(query.get()).not.toContain(entity);
 
             // Manually call entityCompositionChanged (as if entity._candidacy was called)
             // This direct call simulates the entity notifying the world *before* component is actually added by entity.add
             // In real scenario, entity.add() -> entity._candidacy() -> world.entityCompositionChanged()
             world.entityCompositionChanged(entity);
-            expect(query.entities).not.toContain(entity); // Still should not contain
+            expect(query.get()).not.toContain(entity); // Still should not contain
 
             entity.add(TrackableComponent); // This will call _candidacy -> world.entityCompositionChanged
 
             // Query should now contain the entity
-            expect(query.entities).toContain(entity);
+            expect(query.get()).toContain(entity);
         });
 
         it('should update query results when an entity loses a relevant component', () => {
             entity.add(TrackableComponent);
-            expect(query.entities).toContain(entity);
+            expect(query.get()).toContain(entity);
 
             const component = entity.get(TrackableComponent)!;
             entity.remove(component); // This will call _candidacy -> world.entityCompositionChanged
 
-            expect(query.entities).not.toContain(entity);
+            expect(query.get()).not.toContain(entity);
         });
     });
 

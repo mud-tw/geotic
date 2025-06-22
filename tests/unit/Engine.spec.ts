@@ -1,4 +1,4 @@
-import { Engine, World, Component, ComponentClass, PrefabData } from '@src/index'; // Adjusted path
+import { Entity, Engine, World, Component, ComponentClass, PrefabData } from '@src/index'; // Adjusted path
 
 describe('Engine', () => {
     let engine: Engine;
@@ -137,7 +137,11 @@ describe('Engine', () => {
 
 
         it('should return undefined for an unknown prefab name', () => {
+            // let entity: Entity | undefined;
+            // try {
             const entity = engine.createPrefabInstance(world, 'UnknownPrefab');
+            // } catch (error) {}
+            // const entity = engine.createPrefabInstance(world, 'UnknownPrefab');
             expect(entity).toBeUndefined();
         });
     });
