@@ -33,7 +33,59 @@ export interface QueryFilters {
 /**
  * Type for callback functions that listen to entity additions or removals from a query.
  */
-type EntityListener = (entity: Entity) => void;
+type EntityListener = (entity: Entity) => void; // This will be replaced by EntityObserver logic
+
+// +++ New Interfaces & Types for Reactive Queries (T4.1) +++
+/**
+ * Represents a subscription to a query's reactive changes.
+ * Call `unsubscribe()` to stop receiving updates.
+ */
+export interface QuerySubscription {
+    /**
+     * Unsubscribes all callbacks associated with this subscription from the query.
+     * After unsubscription, the observer callbacks will no longer be called.
+     * Calling unsubscribe multiple times has no effect.
+     */
+    unsubscribe(): void;
+
+    /** True if this subscription has been unsubscribed, false otherwise. */
+    readonly closed: boolean;
+}
+
+/**
+ * An object containing callbacks for reacting to entities entering or exiting a query.
+ */
+export interface EntityObserver {
+    /** Optional callback invoked when an entity enters the query's result set. */
+    onEnter?: (entity: Entity) => void;
+    /** Optional callback invoked when an entity exits the query's result set. */
+    onExit?: (entity: Entity) => void;
+}
+
+/**
+ * Options for configuring the behavior of `Query.observe()`.
+ */
+export interface ObserveOptions {
+    /**
+     * If true, the `onEnter` callback will be immediately invoked
+     * for all entities currently matching the query at the time `observe()` is called.
+     * Defaults to `false`.
+     */
+    emitCurrent?: boolean;
+}
+
+/** @internal Internal structure to store observers along with their subscription status */
+interface ActiveObserverRecord {
+    observer: EntityObserver;
+    subscription: QuerySubscriptionInternal; // So we can mark it closed
+}
+
+/** @internal Modifiable version of QuerySubscription for internal use */
+interface QuerySubscriptionInternal extends QuerySubscription {
+    closed: boolean; // Make it writable internally
+}
+// +++ End New Interfaces & Types +++
+
 
 /**
  * A Query dynamically maintains a collection of entities that match a specific set of component criteria.
@@ -58,12 +110,10 @@ export class Query {
     private _world: World;
     /** @private Internal cache of entities currently matching the query criteria. */
     private _cache: Entity[] = [];
-    /** @private Listeners to be called when an entity is added to this query. */
-    private _onAddListeners: EntityListener[] = [];
-    /** @private Listeners to be called when an entity is removed from this query. */
-    private _onRemoveListeners: EntityListener[] = [];
     /** @private Determines if `get()` returns a mutable or immutable array of results. */
     private _immutableResult: boolean;
+    /** @private List of active observers for reactive query functionality. */
+    private _activeObservers: ActiveObserverRecord[] = [];
 
     /** @private Combined bitmask for the 'any' filter. An entity matches if it has at least one of these bits. */
     private readonly _any: bigint;
@@ -99,23 +149,142 @@ export class Query {
         this.refresh();
     }
 
+    // TODO: Refactor onEntityAdded and onEntityRemoved to use the new observe mechanism
+    // For now, they will be non-functional after _onAddListeners/_onRemoveListeners are removed in candidate()
     /**
      * Registers a callback function to be invoked when an entity is added to this query
      * (i.e., it starts matching the query's criteria).
      * @param fn The callback function, which receives the added entity as an argument.
+     * @returns A function that, when called, unregisters (unsubscribes) this specific callback.
+     * @deprecated Prefer using `Query.observe()` for more comprehensive subscription management and features like `emitCurrent`.
      */
-    onEntityAdded(fn: EntityListener): void {
-        this._onAddListeners.push(fn);
+    public onEntityAdded(fn: (entity: Entity) => void): () => void {
+        const subscription = this.observe({ onEnter: fn });
+        return () => subscription.unsubscribe();
     }
 
     /**
      * Registers a callback function to be invoked when an entity is removed from this query
      * (i.e., it stops matching the query's criteria or is destroyed).
      * @param fn The callback function, which receives the removed entity as an argument.
+     * @returns A function that, when called, unregisters (unsubscribes) this specific callback.
+     * @deprecated Prefer using `Query.observe()` for more comprehensive subscription management.
      */
-    onEntityRemoved(fn: EntityListener): void {
-        this._onRemoveListeners.push(fn);
+    public onEntityRemoved(fn: (entity: Entity) => void): () => void {
+        const subscription = this.observe({ onExit: fn });
+        return () => subscription.unsubscribe();
     }
+
+    /**
+     * Subscribes to changes in this query's result set, allowing for reactive responses
+     * when entities enter or exit the query.
+     *
+     * @param observer An object with `onEnter` and/or `onExit` callbacks.
+     *   - `onEnter(entity: Entity)`: Called when an entity newly matches the query criteria.
+     *   - `onExit(entity: Entity)`: Called when an entity no longer matches the query criteria or is destroyed.
+     * @param options Optional configuration for the observation.
+     *   - `options.emitCurrent`: If `true`, `onEnter` will be immediately called for all entities
+     *     already matching the query at the time of subscription. Defaults to `false`.
+     * @returns A `QuerySubscription` object with an `unsubscribe()` method to stop receiving updates
+     *          and a `closed` property to check subscription status.
+     *
+     * @example
+     * const query = world.createQuery({ all: [Position] });
+     * const subscription = query.observe({
+     *   onEnter: (entity) => console.log(`Entity ${entity.id} entered the Position query.`),
+     *   onExit: (entity) => console.log(`Entity ${entity.id} exited the Position query.`)
+     * }, { emitCurrent: true });
+     *
+     * // To stop listening:
+     * // subscription.unsubscribe();
+     */
+    public observe(observer: EntityObserver, options?: ObserveOptions): QuerySubscription {
+        const subscription: QuerySubscriptionInternal = {
+            closed: false,
+            unsubscribe: () => {
+                if (!subscription.closed) {
+                    subscription.closed = true;
+                    // Remove this specific subscription record from the active observers.
+                    // Filtering by direct object reference of the subscription.
+                    this._activeObservers = this._activeObservers.filter(
+                        record => record.subscription !== subscription
+                    );
+                }
+            }
+        };
+
+        const record: ActiveObserverRecord = { observer, subscription };
+        this._activeObservers.push(record);
+
+        // emitCurrent option handling will be added in the next step (Part 4 of T4.1)
+        // For now, this part is deferred.
+        if (options?.emitCurrent && observer.onEnter) {
+            // Iterate over a copy of the current cache if immutableResult is true,
+            // or the cache itself if false. this.get() handles this.
+            const currentEntities = this.get(); // Respects immutableResult
+            currentEntities.forEach(entity => {
+                try {
+                    // Check if subscription is still active before calling,
+                    // though it's unlikely to be closed right after creation unless by some sync side effect.
+                    if (!subscription.closed) {
+                        observer.onEnter!(entity);
+                    }
+                } catch (e) {
+                    console.error("Geotic: Error in reactive query onEnter (emitCurrent) callback:", e);
+                }
+            });
+        }
+
+        return subscription;
+    }
+
+    /**
+     * @internal Notifies active observers based on the event type.
+     */
+    private _notifyObservers(entity: Entity, eventType: 'onEnter' | 'onExit'): void {
+        const observersToNotify = [...this._activeObservers]; // Iterate a copy
+
+        for (const record of observersToNotify) {
+            // Check 'closed' on the original record's subscription, in case it was unsubscribed
+            // by a previously called callback in this same notification loop.
+            // However, since we are iterating a copy, the record.subscription we have is from the copy.
+            // The actual subscription object shared with the user has its 'closed' flag set.
+            // So we check the subscription object that was part of the record when it was pushed.
+            if (record.subscription.closed) {
+                continue;
+            }
+
+            const callback = record.observer[eventType];
+            if (callback) {
+                try {
+                    callback(entity);
+                } catch (e) {
+                    console.error(`Geotic: Error in reactive query ${eventType} callback:`, e);
+                }
+            }
+        }
+    }
+
+    // Remove _notifyObserversOnAdd and _notifyObserversOnExit as they are combined into _notifyObservers
+    /**
+     * @internal Notifies active observers when an entity is added to the query.
+     * Called by `candidate()`.
+     */
+    // private _notifyObserversOnAdd(entity: Entity): void {
+    //     this._notifyObservers(entity, 'onEnter');
+    // }
+
+    /**
+     * @internal Notifies active observers when an entity is removed from the query.
+     * Called by `candidate()`.
+     */
+    // private _notifyObserversOnExit(entity: Entity): void {
+    //    this._notifyObservers(entity, 'onExit');
+    // }
+
+    // candidate() method will be updated next to use _notifyObservers
+    }
+
 
     /**
      * Checks if a given entity is currently part of this query's result set (i.e., is in the cache).
@@ -178,8 +347,7 @@ export class Query {
             if (!isCurrentlyTracked) {
                 // It's a new match, add it to the cache.
                 this._cache.push(entity);
-                // Notify all 'onEntityAdded' listeners.
-                this._onAddListeners.forEach((cb) => cb(entity));
+                this._notifyObservers(entity, 'onEnter');
             }
             return true; // Entity is a match (either new or existing).
         }
@@ -187,9 +355,11 @@ export class Query {
         // Entity does not match the criteria (or is destroyed).
         if (isCurrentlyTracked) {
             // It was previously a match, so remove it from the cache.
-            this._cache.splice(this.idx(entity), 1);
-            // Notify all 'onEntityRemoved' listeners.
-            this._onRemoveListeners.forEach((cb) => cb(entity));
+            const entityIndex = this.idx(entity);
+            if (entityIndex > -1) {
+                 this._cache.splice(entityIndex, 1);
+                 this._notifyObservers(entity, 'onExit');
+            }
         }
 
         return false; // Entity is not a match.
