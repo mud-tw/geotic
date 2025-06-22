@@ -78,8 +78,8 @@ describe('Entity', () => {
 
             testComponentDestroySpy = jest.spyOn(entity.testComponent as TestComponent, '_onDestroyed');
             emptyComponentDestroySpy = jest.spyOn(entity.emptyComponent as EmptyComponent, '_onDestroyed');
-            nestedComponentDestroySpy = jest.spyOn((entity.nestedComponent as Record<string, NestedComponent>)['test'], '_onDestroyed');
-            arrayComponentDestroySpy = jest.spyOn((entity.arrayComponent as ArrayComponent[])[0], '_onDestroyed');
+            nestedComponentDestroySpy = jest.spyOn((entity.nestedComponent as Record<string, typeof NestedComponent>)['test'], '_onDestroyed');
+            arrayComponentDestroySpy = jest.spyOn((entity.arrayComponent as typeof ArrayComponent[])[0], '_onDestroyed');
 
             entity.destroy();
         });
@@ -142,18 +142,18 @@ describe('Entity', () => {
             });
 
             it('should add the components to the entity as a camel cased property object', () => {
-                expect((entity.nestedComponent as Record<string, NestedComponent>)[nameA]).toBeDefined();
-                expect((entity.nestedComponent as Record<string, NestedComponent>)[nameB]).toBeDefined();
+                expect((entity.nestedComponent as Record<string, typeof NestedComponent>)[nameA]).toBeDefined();
+                expect((entity.nestedComponent as Record<string, typeof NestedComponent>)[nameB]).toBeDefined();
             });
 
             it('should have the correct type of components', () => {
-                expect((entity.nestedComponent as Record<string, NestedComponent>)[nameA]).toBeInstanceOf(NestedComponent);
-                expect((entity.nestedComponent as Record<string, NestedComponent>)[nameB]).toBeInstanceOf(NestedComponent);
+                expect((entity.nestedComponent as Record<string, typeof NestedComponent>)[nameA]).toBeInstanceOf(NestedComponent);
+                expect((entity.nestedComponent as Record<string, typeof NestedComponent>)[nameB]).toBeInstanceOf(NestedComponent);
             });
 
             it('should set component properties', () => {
-                expect((entity.nestedComponent as Record<string, NestedComponent>)[nameA].name).toBe(nameA);
-                expect((entity.nestedComponent as Record<string, NestedComponent>)[nameB].name).toBe(nameB);
+                expect((entity.nestedComponent as Record<string, typeof NestedComponent>)[nameA].name).toBe(nameA);
+                expect((entity.nestedComponent as Record<string, typeof NestedComponent>)[nameB].name).toBe(nameB);
             });
         });
 
@@ -169,7 +169,7 @@ describe('Entity', () => {
             });
 
             it('should add the components to the entity as a camel cased array property', () => {
-                const ac = entity.arrayComponent as ArrayComponent[];
+                const ac: typeof ArrayComponent[] = entity.arrayComponent as typeof ArrayComponent[];
                 expect(ac).toBeDefined();
                 expect(ac).toHaveLength(2);
                 expect(ac[0].name).toBe(nameA);
@@ -177,7 +177,7 @@ describe('Entity', () => {
             });
 
             it('should assign the entity to each component', () => {
-                const ac = entity.arrayComponent as ArrayComponent[];
+                const ac = entity.arrayComponent as typeof ArrayComponent[];
                 expect(ac[0].entity).toBe(entity);
                 expect(ac[1].entity).toBe(entity);
             });
@@ -187,13 +187,13 @@ describe('Entity', () => {
             });
 
             it('should have the correct type of components', () => {
-                const ac = entity.arrayComponent as ArrayComponent[];
+                const ac = entity.arrayComponent as typeof ArrayComponent[];
                 expect(ac[0]).toBeInstanceOf(ArrayComponent);
                 expect(ac[1]).toBeInstanceOf(ArrayComponent);
             });
 
             it('should set component properties', () => {
-                const ac = entity.arrayComponent as ArrayComponent[];
+                const ac = entity.arrayComponent as typeof ArrayComponent[];
                 expect(ac[0].name).toBe(nameA);
                 expect(ac[1].name).toBe(nameB);
             });
@@ -269,8 +269,8 @@ describe('Entity', () => {
             beforeEach(() => {
                 entity.add(ArrayComponent, { name: 'a' });
                 entity.add(ArrayComponent, { name: 'b' });
-                compA = (entity.arrayComponent as ArrayComponent[])[0];
-                compB = (entity.arrayComponent as ArrayComponent[])[1];
+                compA = entity.arrayComponent[0];
+                compB = entity.arrayComponent[1];
             });
 
             describe('when one of them is removed', () => {
@@ -284,13 +284,13 @@ describe('Entity', () => {
                     // If `entity.remove` sets the element to undefined in the array:
                     // expect((entity.arrayComponent as ArrayComponent[])[1]).toBeUndefined();
                     // If `entity.remove` splices the array:
-                    expect((entity.arrayComponent as ArrayComponent[]).find(c => c === compB)).toBeUndefined();
-                    expect((entity.arrayComponent as ArrayComponent[]).length).toBe(1);
+                    expect((entity.arrayComponent).find(c => c === compB)).toBeUndefined();
+                    expect((entity.arrayComponent).length).toBe(1);
 
                 });
 
                 it('should keep the other component', () => {
-                    expect((entity.arrayComponent as ArrayComponent[])[0]).toBe(compA);
+                    expect((entity.arrayComponent)[0]).toBe(compA);
                 });
             });
 

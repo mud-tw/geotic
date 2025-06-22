@@ -33,7 +33,7 @@ export default class Prefab {
             const componentClass = pComponent.componentClass as (ComponentClass<Component> & {prototype: {_ckey: string}, allowMultiple?: boolean, keyProperty?: string | null});
             const ckey = componentClass.prototype._ckey;
 
-            let initialCompProps: any = {}; // TODO: Type this better based on component properties
+            let componentOverrides: Partial<ComponentProperties> = {};
 
             if (componentClass.allowMultiple) {
                 if (componentClass.keyProperty && pComponent.properties) {
@@ -41,7 +41,7 @@ export default class Prefab {
                     const keyValue = pComponent.properties[keyPropName];
 
                     if (prefabProps[ckey] && prefabProps[ckey][keyValue]) {
-                        initialCompProps = prefabProps[ckey][keyValue];
+                        componentOverrides = prefabProps[ckey][keyValue];
                     }
                 } else {
                     // Non-keyed multiple components (array)
@@ -50,17 +50,29 @@ export default class Prefab {
                     }
                     const currentIndex = arrCompsCounter[ckey];
                     if (prefabProps[ckey] && Array.isArray(prefabProps[ckey]) && prefabProps[ckey][currentIndex]) {
-                        initialCompProps = prefabProps[ckey][currentIndex];
+                        componentOverrides = prefabProps[ckey][currentIndex];
                     }
                     arrCompsCounter[ckey]++;
                 }
             } else {
                 // Single component
-                // The whole prefabProps is passed; PrefabComponent.applyToEntity will merge
-                // its own defined properties with these overrides.
-                initialCompProps = prefabProps;
+                // Check for structured override first (e.g., { posComponent: { x: 100 } })
+                if (prefabProps[ckey]) {
+                    componentOverrides = prefabProps[ckey];
+                } else {
+                    // If no structured override, try to apply flat properties (e.g., { x: 100 })
+                    // This applies only to single-instance components to avoid ambiguity.
+                    // Iterate over properties defined in the component's static 'properties'
+                    // and check if they exist in the flat prefabProps.
+                    const staticComponentProps = (componentClass as any).properties || {};
+                    for (const propName in staticComponentProps) {
+                        if (prefabProps.hasOwnProperty(propName)) {
+                            componentOverrides[propName] = prefabProps[propName];
+                        }
+                    }
+                }
             }
-            pComponent.applyToEntity(entity, initialCompProps);
+            pComponent.applyToEntity(entity, componentOverrides);
         });
 
         return entity;

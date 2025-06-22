@@ -4,12 +4,6 @@ import { addBit, hasBit, subtractBit } from './util/bit-util';
 import type { World } from './World';
 import type { ComponentProperties } from './Component'; // Assuming Component.ts exports this
 
-import { Component, ComponentProperties } from './Component'; // Ensure ComponentProperties is imported
-import { EntityEvent } from './EntityEvent';
-import { addBit, hasBit, subtractBit } from './util/bit-util';
-import type { World } from './World';
-// ComponentProperties already imported from ./Component
-
 // Define a type for any component class constructor
 type AnyComponentConstructor<T extends Component = Component> = new (...args: any[]) => T;
 

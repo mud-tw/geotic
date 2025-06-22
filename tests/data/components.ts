@@ -10,6 +10,9 @@ export class SimpleComponent extends Component {
     static properties: SimpleComponentProperties = {
         testProp: 'thing',
     };
+    constructor(properties?: Partial<any>) {
+        super(properties);
+    }
     testProp!: string; // Instance property
 }
 
@@ -33,6 +36,9 @@ export class NestedComponent extends Component {
             arr: [1, 2, 3],
         },
     };
+    constructor(properties?: Partial<any>) {
+        super(properties);
+    }
     name!: string; // Instance properties
     hello!: string;
     obprop!: {
@@ -52,6 +58,9 @@ export class ArrayComponent extends Component {
         name: 'a',
         hello: 'world',
     };
+    constructor(properties?: Partial<any>) {
+        super(properties);
+    }
     name!: string; // Instance properties
     hello!: string;
 }
