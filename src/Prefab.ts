@@ -56,9 +56,9 @@ export default class Prefab {
                 }
             } else {
                 // Single component
-                if (prefabProps[ckey]) {
-                    initialCompProps = prefabProps[ckey];
-                }
+                // The whole prefabProps is passed; PrefabComponent.applyToEntity will merge
+                // its own defined properties with these overrides.
+                initialCompProps = prefabProps;
             }
             pComponent.applyToEntity(entity, initialCompProps);
         });

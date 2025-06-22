@@ -122,4 +122,8 @@ export class Query {
     get(): Entity[] {
         return this._immutableResult ? [...this._cache] : this._cache;
     }
+
+    get entities(): Entity[] {
+        return this.get();
+    }
 }

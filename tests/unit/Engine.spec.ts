@@ -1,4 +1,4 @@
-import { Engine, World, Component, ComponentClass, PrefabData } from '@src/index'; // Adjusted path
+import { Engine, World, Component, ComponentClass, PrefabData, Entity } from '@src/index'; // Adjusted path
 
 describe('Engine', () => {
     let engine: Engine;
