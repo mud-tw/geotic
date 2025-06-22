@@ -320,7 +320,7 @@ describe('Query', () => {
 
         beforeEach(() => {
             // ComponentA (CompA_Query) is already registered in the outer scope's beforeEach
-            queryAllA = world.createQuery({ all: [CompA_Query] });
+            queryAllA = world.createQuery({ all: [CompA] });
             entityX = world.createEntity('entityX');
             entityY = world.createEntity('entityY');
             onEnterMock = jest.fn();
@@ -412,23 +412,25 @@ describe('Query', () => {
             expect(onEnterMock).toHaveBeenCalledWith(entityZ);
         });
 
-        it('should default to emitCurrent: false if options or emitCurrent is not provided', () => {
-            entityX.add(ComponentA);
+        it('should default to emitCurrent: false if options object is not provided', () => {
+            entityX.add(ComponentA); // pre-existing entity
+            queryAllA.observe({ onEnter: onEnterMock });
 
-            // Test with no options object
-            queryAllA.observe({ onEnter: onEnterMock, onExit: onExitMock });
+            // 不應該為已存在的實體呼叫
             expect(onEnterMock).not.toHaveBeenCalled();
-            onEnterMock.mockClear(); // Clear for next part of test
 
-            // Test with options object but emitCurrent undefined
-            const entityZ = world.createEntity('entityZ'); // New entity for this part
-            queryAllA.observe({ onEnter: onEnterMock, onExit: onExitMock }, {}); // Empty options
-            entityZ.add(ComponentA); // entityZ now matches
-            // This call to add will trigger onEnter for the new entity, but not for pre-existing entityX
+            // 應該為新的實體呼叫
+            const entityZ = world.createEntity('entityZ');
+            entityZ.add(ComponentA);
             expect(onEnterMock).toHaveBeenCalledTimes(1);
             expect(onEnterMock).toHaveBeenCalledWith(entityZ);
         });
 
+        it('should default to emitCurrent: false if emitCurrent is not in options', () => {
+            entityX.add(ComponentA); // pre-existing entity
+            queryAllA.observe({ onEnter: onEnterMock }, {}); // empty options
+            expect(onEnterMock).not.toHaveBeenCalled(); // 不應該為已存在的實體呼叫
+        });
 
         // More tests for unsubscription, multiple observers will be added later.
 
