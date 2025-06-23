@@ -125,7 +125,7 @@ Geotic 是一個使用 TypeScript 編寫的 ECS 函式庫。其核心架構包�
 
 ### 3.4. 功能增強
 *   [x] **T4.1**: (研究/設計) 設計反應式/可觀察查詢的 API 與實作機制。 (研究完成 - 參見 4.3 節總結)
-*   [ ] **T4.2**: (設計) 設計一個可選的 `System` 基礎類別/介面及其與 `World`/`Engine` 的整合方式。
+*   [x] **T4.2**: (設計) 設計一個可選的 `System` 基礎類別/介面及其與 `World`/`Engine` 的整合方式。 (設計草案完成 - 參見 4.4 節)
 *   [ ] **T4.3**: (研究/設計) 評估並設計更進階的事件系統功能 (如全域事件、型別化事件)。
 *   [ ] **T4.4**: (設計) 確定 `World` 和 `Engine` 所需的生命週期掛鉤，並設計其 API。
 *   [ ] **T4.5**: (研究/設計) 設計支援實體參照的序列化/反序列化機制。
@@ -294,3 +294,317 @@ Geotic 是一個使用 TypeScript 編寫的 ECS 函式庫。其核心架構包�
     *   錯誤處理對於回呼的健壯性很重要。
 
 此設計旨在提供一個更完整、更符合現代反應式程式設計習慣的查詢觀察機制，同時解決現有基礎回呼的不足。
+
+### 4.4. T4.2 系統 (System) 抽象/基礎類別設計草案
+
+*   **目標**:
+    *   為使用者定義遊戲邏輯 (系統) 提供一個標準化的、可選的結構。
+    *   簡化常見的系統模式，例如遍歷查詢結果和透過 `query.observe()` 處理反應式更新。
+    *   提供與 `World` 的可選整合點，用於生命週期管理 (例如，初始化、更新)。
+    *   保持 Geotic 的非侵入性：使用此 System 類別應為可選。
+
+*   **API 結構提案**:
+
+    **介面: `ISystem`** (可選，供偏好介面驅動設計的使用者)
+    ```typescript
+    interface ISystem {
+        world?: World; // 由系統管理器 (例如 World) 注入
+
+        onAdded?(world: World): void; // 當被加入到 World 時呼叫
+        onRemoved?(): void;          // 當從 World 移除時呼叫
+        update?(dt: number, time?: number): void; // 主要更新迴圈
+
+        // 可選的、更具體的生命週期掛鉤
+        initialize?(): void;         // onAdded 後 (world 可用時) 呼叫一次
+        destroy?(): void;            // onRemoved 前呼叫，用於清理
+    }
+    ```
+
+    **基礎類別: `System`** (提供結構、查詢管理以及使用 `query.observe()` 的輔助方法)
+    ```typescript
+    // 假設 QuerySubscription, EntityObserver, ObserveOptions, Query, Entity, World, Component 已被定義/匯入
+    abstract class System implements ISystem {
+        public world!: World; // 非可選，將由 World.addSystem() 設定
+
+        /**
+         * 儲存由系統定義的查詢。
+         * 鍵為使用者定義的字串，值為 Query 實例。
+         */
+        protected readonly queries: Record<string, Query> = {};
+
+        /**
+         * 儲存透過 this.autoObserveQuery() 建立的查詢訂閱。
+         * 這些訂閱會在系統被移除時自動取消。
+         * @internal
+         */
+        private _managedSubscriptions: QuerySubscription[] = [];
+
+        /**
+         * 由 World 呼叫，當系統被加入時。
+         * 設定 world，然後呼叫可選的使用者定義的生命週期方法。
+         * @param world 此系統被加入的 World。
+         * @internal
+         */
+        public onAdded(world: World): void {
+            this.world = world;
+            this.defineQueries?.();       // 使用者掛鉤，用於建立並儲存查詢至 this.queries
+            this.initialize?.();          // 使用者掛鉤，用於一般初始化
+            this.registerObservers?.();   // 使用者掛鉤，用於設定反應式查詢觀察
+        }
+
+        /**
+         * 由 World 呼叫，當系統被移除時。
+         * 呼叫可選的使用者定義的生命週期方法，然後清理受管理的訂閱。
+         * @internal
+         */
+        public onRemoved(): void {
+            this.destroy?.();             // 使用者掛鉤，用於清理
+            this._managedSubscriptions.forEach(sub => sub.unsubscribe());
+            this._managedSubscriptions = [];
+        }
+
+        /**
+         * (可選) 子類別覆寫此方法來定義和建立其查詢。
+         * 查詢應儲存在 `this.queries` 中 (例如 `(this.queries as any).myQuery = ...`)。
+         * 在 `onAdded` 期間呼叫。
+         */
+        protected defineQueries?(): void;
+
+        /**
+         * (可選) 使用者定義的初始化邏輯。
+         * 在 `defineQueries` 之後，`onAdded` 期間呼叫。
+         */
+        protected initialize?(): void;
+
+        /**
+         * (可選) 子類別覆寫此方法來註冊其反應式觀察器，通常使用 `this.autoObserveQuery()`。
+         * 在 `initialize` 之後，`onAdded` 期間呼叫。
+         */
+        protected registerObservers?(): void;
+
+        /**
+         * (可選) 使用者定義的清理邏輯。
+         * 在訂閱被清理前，`onRemoved` 期間呼叫。
+         */
+        protected destroy?(): void;
+
+        /**
+         * 系統的主要更新方法。
+         * 子類別通常覆寫此方法以實作其每幀邏輯。
+         */
+        public update?(dt: number, time?: number): void;
+
+        /**
+         * 輔助方法，用於遍歷受管理查詢中的所有實體。
+         * @param queryKey `this.queries` 中的查詢鍵。
+         * @param callback 為每個實體呼叫的函式。
+         * @param dt 可選的 delta time，傳遞給回呼。
+         * @param time 可選的 total time，傳遞給回呼。
+         */
+        protected forEachEntity(
+            queryKey: string,
+            callback: (entity: Entity, dt?: number, time?: number) => void,
+            dt?: number,
+            time?: number
+        ): void {
+            const query = this.queries[queryKey];
+            if (query) {
+                query.get().forEach(entity => callback(entity, dt, time));
+            } else {
+                console.warn(`System '${this.constructor.name}': Query with key '${queryKey}' not found for forEachEntity.`);
+            }
+        }
+
+        /**
+         * 輔助方法，用於觀察一個受管理的查詢。
+         * 使用此方法建立的訂閱會在系統被移除時自動取消。
+         * @param queryKey `this.queries` 中的查詢鍵。
+         * @param observer EntityObserver 物件，包含 onEnter/onExit 回呼。
+         * @param options 可選的 ObserveOptions。
+         * @returns QuerySubscription，若查詢未找到則返回 undefined。
+         */
+        protected autoObserveQuery(
+            queryKey: string,
+            observer: EntityObserver,
+            options?: ObserveOptions
+        ): QuerySubscription | undefined {
+            const query = this.queries[queryKey];
+            if (query) {
+                const subscription = query.observe(observer, options);
+                this._managedSubscriptions.push(subscription);
+                return subscription;
+            }
+            console.warn(`System '${this.constructor.name}': Query with key '${queryKey}' not found for autoObserveQuery.`);
+            return undefined;
+        }
+    }
+    ```
+
+*   **與 `World` 的整合提案**:
+    ```typescript
+    // In World.ts
+    class World {
+        // ... 現有屬性 ...
+        private _systems: ISystem[] = [];
+        private _systemsUpdateOrder: ISystem[] = []; // 用於明確的執行順序
+
+        public addSystem<T extends ISystem>(system: T /*, options?: { priority?: number } */): T {
+            if (this._systems.includes(system)) {
+                console.warn(`System instance already added to world.`);
+                return system;
+            }
+            this._systems.push(system);
+            this._systemsUpdateOrder.push(system); // 目前僅按加入順序執行
+            // 若加入 priority 選項，則此處應排序 _systemsUpdateOrder
+
+            system.onAdded?.(this); // 注入 world 並呼叫生命週期掛鉤
+            return system;
+        }
+
+        public removeSystem(system: ISystem): void {
+            const index = this._systems.indexOf(system);
+            if (index > -1) {
+                system.onRemoved?.();
+                this._systems.splice(index, 1);
+                this._systemsUpdateOrder = this._systemsUpdateOrder.filter(s => s !== system);
+            }
+        }
+
+        public getSystem<T extends ISystem>(systemClass: new (...args: any[]) => T): T | undefined {
+            return this._systems.find(s => s instanceof systemClass) as T | undefined;
+        }
+
+        public updateSystems(dt: number, time?: number): void {
+            for (const system of this._systemsUpdateOrder) {
+                try {
+                    system.update?.(dt, time);
+                } catch (e) {
+                    console.error(`Error in system ${system.constructor.name}.update:`, e);
+                    // 可考慮更進階的錯誤處理策略，例如禁用故障的系統
+                }
+            }
+        }
+    }
+    ```
+
+*   **使用範例**:
+    ```typescript
+    // 0. 從 Geotic 匯入必要的類別 (假設 System 等已被匯出)
+    // import { Engine, World, Component, System, Entity, EntityObserver, ObserveOptions, QuerySubscription, Query } from 'geotic';
+
+    // 1. 定義組件
+    class Position extends Component {
+        static properties = { x: 0, y: 0 };
+        x!: number; y!: number;
+    }
+    class Velocity extends Component {
+        static properties = { dx: 0, dy: 0 };
+        dx!: number; dy!: number;
+    }
+    class Renderable extends Component {
+        static properties = { sprite: 'default_sprite' };
+        sprite!: string;
+    }
+
+    // 2. 建立和配置引擎
+    const engine = new Engine();
+    engine.registerComponent(Position);
+    engine.registerComponent(Velocity);
+    engine.registerComponent(Renderable);
+
+    // 3. 透過繼承 System 基礎類別來定義系統
+
+    // 移動系統：根據速度更新位置
+    class MovementSystem extends System {
+        protected defineQueries(): void {
+            (this.queries as Record<string, Query>).movables = this.world.createQuery({
+                all: [Position, Velocity]
+            });
+        }
+
+        public update(dt: number): void {
+            this.forEachEntity('movables', (entity) => {
+                const pos = entity.get(Position)!;
+                const vel = entity.get(Velocity)!;
+                pos.x += vel.dx * dt;
+                pos.y += vel.dy * dt;
+            });
+        }
+    }
+
+    // 渲染系統：反應式地處理可渲染實體的進入和離開
+    class RenderSystem extends System {
+        private activeSprites: Map<string, string> = new Map();
+
+        protected defineQueries(): void {
+            (this.queries as Record<string, Query>).renderables = this.world.createQuery({ all: [Renderable, Position] });
+        }
+
+        protected registerObservers(): void {
+            this.autoObserveQuery('renderables', {
+                onEnter: this.handleEntityEnter.bind(this),
+                onExit: this.handleEntityExit.bind(this)
+            }, { emitCurrent: true });
+        }
+
+        private handleEntityEnter(entity: Entity): void {
+            const renderable = entity.get(Renderable)!;
+            const position = entity.get(Position)!;
+            console.log(`RenderSystem: Entity ${entity.id} ENTERED. Sprite: ${renderable.sprite} at (${position.x}, ${position.y}).`);
+            this.activeSprites.set(entity.id, renderable.sprite);
+            // 此處應有實際的精靈建立邏輯
+        }
+
+        private handleEntityExit(entity: Entity): void {
+            const renderable = entity.get(Renderable); // 可能為 undefined，若 Renderable 已被移除
+            console.log(`RenderSystem: Entity ${entity.id} EXITED. Sprite: ${renderable?.sprite || 'N/A'}.`);
+            this.activeSprites.delete(entity.id);
+            // 此處應有實際的精靈移除邏輯
+        }
+
+        protected destroy(): void {
+            console.log('RenderSystem destroyed! Active sprites:', this.activeSprites.size);
+            this.activeSprites.clear();
+        }
+    }
+
+    // 4. 建立 World 並加入系統
+    const world = engine.createWorld();
+    world.addSystem(new MovementSystem());
+    world.addSystem(new RenderSystem());
+
+    // 5. 建立實體並加入組件
+    const player = world.createEntity('player');
+    player.add(Position, { x: 10, y: 10 });
+    player.add(Velocity, { dx: 5, dy: 2 });
+    player.add(Renderable, { sprite: 'player_ship' }); // RenderSystem onEnter 應被觸發 (因 emitCurrent:true)
+
+    const enemy1 = world.createEntity('enemy1');
+    enemy1.add(Position, { x: 100, y: 50 });
+
+    // 6. 遊戲迴圈模擬
+    console.log("--- Tick 1 ---");
+    world.updateSystems(0.16); // MovementSystem 更新 player 位置
+
+    console.log("--- Adding Renderable to enemy1 ---");
+    enemy1.add(Renderable, { sprite: 'enemy_saucer' }); // RenderSystem onEnter 應被觸發
+
+    console.log("--- Tick 2 ---");
+    world.updateSystems(0.16);
+
+    console.log("--- Removing Renderable from player ---");
+    const playerRenderable = player.get(Renderable)!;
+    player.remove(playerRenderable); // RenderSystem onExit 應被觸發
+
+    console.log("--- Tick 3 ---");
+    world.updateSystems(0.16);
+    ```
+
+*   **關鍵討論點**:
+    *   **系統管理器位置**: `World` vs `Engine` (目前草案選擇 `World`)。
+    *   **系統內的查詢管理**: `defineQueries` 和 `registerObservers` 的分離是否清晰？`autoObserveQuery` 的便利性。
+    *   **系統執行順序**: 目前為簡單的加入順序，未來可能需要更複雜的優先級或階段劃分。
+    *   **錯誤處理**: `updateSystems` 中對系統 `update` 方法的錯誤捕捉。
+    *   **`this.queries` 的型別**: 範例中使用了 `(this.queries as Record<string, Query>)` 是因為 `readonly` 修飾符。更好的方式可能是提供一個 `protected addQuery(key: string, query: Query)` 方法，或者在 `defineQueries` 中返回一個 Record。為簡化，暫時維持現狀，但這是個可以改進的細節。
+
+此設計草案旨在提供一個兼具結構化與靈活性的系統抽象層，並良好整合已有的反應式查詢能力。

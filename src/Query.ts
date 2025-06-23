@@ -283,7 +283,7 @@ export class Query {
     // }
 
     // candidate() method will be updated next to use _notifyObservers
-    // }
+    }
 
 
     /**
